@@ -10,7 +10,7 @@
 #include "NormalizedHistogram.h"
 #include "Size2.h"
 #include "SmallVector.h"
-#include "SquareSymmetries.h"
+#include "D4Symmetry.h"
 #include "WrappingMode.h"
 #include "Logger.h"
 
@@ -22,7 +22,7 @@ struct OverlappingModelOptions
 
     WrappingMode inputWrapping;
     WrappingMode outputWrapping;
-    SquareSymmetries symmetries;
+    D4Symmetries symmetries;
     int patternSize; // pattern must be a square
     Size2i outputSize;
 
@@ -34,7 +34,7 @@ struct OverlappingModelOptions
     OverlappingModelOptions() :
         inputWrapping(WrappingMode::None),
         outputWrapping(WrappingMode::None),
-        symmetries(SquareSymmetries::None),
+        symmetries(D4Symmetries::None),
         patternSize(defaultPatternSize),
         outputSize(defaultOutputSize),
         stride(defaultStride),

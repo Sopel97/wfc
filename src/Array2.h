@@ -6,7 +6,7 @@
 #include "Coords2.h"
 #include "Size2.h"
 #include "SmallVector.h"
-#include "SquareSymmetries.h"
+#include "D4Symmetry.h"
 #include "WrappingMode.h"
 
 // stored in column-major order
@@ -445,35 +445,35 @@ void forEach(const Array2<T>& a, Func&& func)
 }
 
 template <typename T>
-[[nodiscard]] SmallVector<SquareArray2<T>, 8> generateSymmetries(SquareArray2<T>&& pattern, SquareSymmetries symmetries)
+[[nodiscard]] SmallVector<SquareArray2<T>, 8> generateSymmetries(SquareArray2<T>&& pattern, D4Symmetries symmetries)
 {
     SmallVector<SquareArray2<T>, 8> sym;
 
-    if (contains(symmetries, SquareSymmetries::Rotation90))
+    if (contains(symmetries, D4Symmetry::Rotation90))
     {
         sym.emplace_back(pattern.rotated90());
     }
-    if (contains(symmetries, SquareSymmetries::Rotation180))
+    if (contains(symmetries, D4Symmetry::Rotation180))
     {
         sym.emplace_back(pattern.rotated180());
     }
-    if (contains(symmetries, SquareSymmetries::Rotation270))
+    if (contains(symmetries, D4Symmetry::Rotation270))
     {
         sym.emplace_back(pattern.rotated270());
     }
-    if (contains(symmetries, SquareSymmetries::FlipAboutHorizontalAxis))
+    if (contains(symmetries, D4Symmetry::FlipAboutHorizontalAxis))
     {
         sym.emplace_back(pattern.flippedAboutHorizontalAxis());
     }
-    if (contains(symmetries, SquareSymmetries::FlipAboutVerticalAxis))
+    if (contains(symmetries, D4Symmetry::FlipAboutVerticalAxis))
     {
         sym.emplace_back(pattern.flippedAboutVerticalAxis());
     }
-    if (contains(symmetries, SquareSymmetries::FlipAboutMainDiagonal))
+    if (contains(symmetries, D4Symmetry::FlipAboutMainDiagonal))
     {
         sym.emplace_back(pattern.flippedAboutMainDiagonal());
     }
-    if (contains(symmetries, SquareSymmetries::FlipAboutAntiDiagonal))
+    if (contains(symmetries, D4Symmetry::FlipAboutAntiDiagonal))
     {
         sym.emplace_back(pattern.flippedAboutAntiDiagonal());
     }

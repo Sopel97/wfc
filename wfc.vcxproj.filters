@@ -78,10 +78,10 @@
     <ClInclude Include="lib\pcg_uint128.hpp">
       <Filter>Header Files\lib</Filter>
     </ClInclude>
-    <ClInclude Include="src\SquareSymmetries.h">
+    <ClInclude Include="src\Logger.h">
       <Filter>Header Files\src</Filter>
     </ClInclude>
-    <ClInclude Include="src\Logger.h">
+    <ClInclude Include="src\D4Symmetry.h">
       <Filter>Header Files\src</Filter>
     </ClInclude>
   </ItemGroup>

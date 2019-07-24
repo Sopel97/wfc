@@ -16,7 +16,7 @@
 #include "SmallVector.h"
 #include "Wave.h"
 #include "WrappingMode.h"
-#include "SquareSymmetries.h"
+#include "D4Symmetry.h"
 
 static inline Array2<ColorRGBi> loadImage(const std::string& path)
 {
@@ -78,7 +78,7 @@ int main()
 {
     auto img = loadImage("sample_in/flowers.png");
     OverlappingModelOptions opt{};
-    opt.symmetries = SquareSymmetries::All;
+    opt.symmetries = D4Symmetries::All;
     opt.inputWrapping = WrappingMode::All;
     opt.outputWrapping = WrappingMode::All;
     opt.patternSize = 3;
