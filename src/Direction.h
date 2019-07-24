@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "Coords2.h"
+#include "Util.h"
 
 enum struct Direction : std::uint8_t
 {
@@ -15,50 +16,50 @@ enum struct Direction : std::uint8_t
 
 struct DirectionHelper
 {
-    static int toId(Direction dir)
+    [[nodiscard]] static constexpr int toId(Direction dir)
     {
         return static_cast<int>(dir);
     }
 
-    static Direction fromId(int id)
+    [[nodiscard]] static constexpr Direction fromId(int id)
     {
         return static_cast<Direction>(id);
     }
 
-    static Direction rotatedClockwise(Direction dir)
+    [[nodiscard]] static constexpr Direction rotatedClockwise(Direction dir)
     {
         return fromId((toId(dir) + 1) % 4);
     }
 
-    static Direction rotatedCounterClockwise(Direction dir)
+    [[nodiscard]] static constexpr Direction rotatedCounterClockwise(Direction dir)
     {
         return fromId((toId(dir) + 3) % 4);
     }
 
-    static Direction oppositeTo(Direction dir)
+    [[nodiscard]] static constexpr Direction oppositeTo(Direction dir)
     {
         return fromId((toId(dir) + 2) % 4);
     }
 
-    static bool areOpposite(Direction d1, Direction d2)
+    [[nodiscard]] static constexpr bool areOpposite(Direction d1, Direction d2)
     {
         const int diff = toId(d1) - toId(d2);
-        return abs(diff) == 2;
+        return util::abs(diff) == 2;
     }
 
-    static bool areParallel(Direction d1, Direction d2)
+    [[nodiscard]] static constexpr bool areParallel(Direction d1, Direction d2)
     {
         const int diff = toId(d1) - toId(d2);
-        return diff == 0 || abs(diff) == 2;
+        return diff == 0 || util::abs(diff) == 2;
     }
 
-    static bool arePerpendicular(Direction d1, Direction d2)
+    [[nodiscard]] static constexpr bool arePerpendicular(Direction d1, Direction d2)
     {
         const int diff = toId(d1) - toId(d2);
-        return abs(diff) == 1 || abs(diff) == 3;
+        return util::abs(diff) == 1 || util::abs(diff) == 3;
     }
 
-    static Coords2i offset(Direction dir)
+    [[nodiscard]] static Coords2i offset(Direction dir)
     {
         static const std::array<Coords2i, 4> offsets{
             Coords2i(0, -1),
@@ -70,7 +71,7 @@ struct DirectionHelper
         return offsets[toId(dir)];
     }
 
-    static const std::array<Direction, 4>& values()
+    [[nodiscard]] static const std::array<Direction, 4>& values()
     {
         static const std::array<Direction, 4> v{
             Direction::North,
@@ -82,7 +83,7 @@ struct DirectionHelper
         return v;
     }
 
-    static const std::string& toString(Direction dir)
+    [[nodiscard]] static const std::string& toString(Direction dir)
     {
         static const std::array<std::string, 4> names{
             "North",
@@ -100,19 +101,33 @@ struct ByDirection : std::array<T, 4>
 {
     using BaseType = std::array<T, 4>;
 
-    ByDirection() noexcept = default;
-    ByDirection(const ByDirection&) noexcept = default;
-    ByDirection(ByDirection&&) noexcept = default;
-    ByDirection& operator=(const ByDirection&) noexcept = default;
-    ByDirection& operator=(ByDirection&&) noexcept = default;
+    template <typename... FwdT>
+    [[nodiscard]] static constexpr ByDirection<T> nesw(FwdT&& ... args)
+    {
+        return ByDirection(std::forward<FwdT>(args)...);
+    }
 
-    T& operator[](Direction dir)
+    constexpr ByDirection() noexcept = default;
+    constexpr ByDirection(const ByDirection&) noexcept = default;
+    constexpr ByDirection(ByDirection&&) noexcept = default;
+    constexpr ByDirection& operator=(const ByDirection&) noexcept = default;
+    constexpr ByDirection& operator=(ByDirection&&) noexcept = default;
+
+    [[nodiscard]] constexpr T& operator[](Direction dir)
     {
         return BaseType::operator[](DirectionHelper::toId(dir));
     }
 
-    const T& operator[](Direction dir) const
+    [[nodiscard]] constexpr const T& operator[](Direction dir) const
     {
         return BaseType::operator[](DirectionHelper::toId(dir));
+    }
+
+private:
+    template <typename... FwdT>
+    constexpr ByDirection(FwdT&& ... args) :
+        BaseType{ std::forward<FwdT>(args)... }
+    {
+
     }
 };

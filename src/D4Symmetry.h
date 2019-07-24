@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <type_traits>
 
+#include "Direction.h"
+
 enum struct D4Symmetry : std::uint8_t
 {
     Rotation90 = 0,
@@ -17,6 +19,16 @@ enum struct D4Symmetry : std::uint8_t
 
 struct D4SymmetryHelper
 {
+    [[nodiscard]] static constexpr int toId(D4Symmetry s)
+    {
+        return static_cast<int>(s);
+    }
+
+    [[nodiscard]] static constexpr D4Symmetry fromId(int id)
+    {
+        return static_cast<D4Symmetry>(id);
+    }
+
     [[nodiscard]] static const std::array<D4Symmetry, 7>& values()
     {
         static const std::array<D4Symmetry, 7> v{
@@ -30,6 +42,23 @@ struct D4SymmetryHelper
         };
 
         return v;
+    }
+
+    // when we transform a square using symmetry s then side that was in direction dir
+    // becomes side in direction ret[dir]
+    [[nodiscard]] static const ByDirection<Direction>& mapping(D4Symmetry s)
+    {
+        static const std::array<ByDirection<Direction>, 7> mappings{
+            ByDirection<Direction>::nesw(Direction::West, Direction::North, Direction::East, Direction::South),
+            ByDirection<Direction>::nesw(Direction::South, Direction::West, Direction::North, Direction::East),
+            ByDirection<Direction>::nesw(Direction::East, Direction::South, Direction::West, Direction::North),
+            ByDirection<Direction>::nesw(Direction::South, Direction::East, Direction::North, Direction::West),
+            ByDirection<Direction>::nesw(Direction::North, Direction::West, Direction::South, Direction::East),
+            ByDirection<Direction>::nesw(Direction::West, Direction::South, Direction::East, Direction::North),
+            ByDirection<Direction>::nesw(Direction::East, Direction::North, Direction::West, Direction::South)
+        };
+
+        return mappings[D4SymmetryHelper::toId(s)];
     }
 };
 

@@ -63,7 +63,7 @@ struct NormalizedHistogram : public NormalizedFrequencies
     template <typename IterT>
     NormalizedHistogram(IterT begin, IterT end)
     {
-        const int size = std::distance(begin, end);
+        const int size = static_cast<int>(std::distance(begin, end));
         reserve(size);
 
         float total = 0.0f;

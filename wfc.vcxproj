@@ -173,6 +173,7 @@
     <ClInclude Include="src\Size3.h" />
     <ClInclude Include="src\SmallVector.h" />
     <ClInclude Include="src\D4Symmetry.h" />
+    <ClInclude Include="src\Util.h" />
     <ClInclude Include="src\Wave.h" />
     <ClInclude Include="src\WrappingMode.h" />
   </ItemGroup>

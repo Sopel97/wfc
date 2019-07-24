@@ -1,16 +1,6 @@
 #pragma once
 
-template <typename T>
-constexpr int abs(T v)
-{
-    return v < 0 ? -v : v;
-}
-
-template <typename T>
-constexpr int sign(T v)
-{
-    return (v > 0) - (v < 0);
-}
+#include "Util.h"
 
 template <typename T>
 struct Coords2
@@ -92,7 +82,7 @@ struct Coords2
 
     [[nodiscard]] constexpr Coords2 sign() const noexcept
     {
-        return Coords2(::sign(x), ::sign(y));
+        return Coords2(util::sign(x), util::sign(y));
     }
 };
 

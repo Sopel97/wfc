@@ -64,7 +64,7 @@ private:
     Array3<ByDirection<int>> initNumCompatibile() const
     {
         const auto [width, height] = size();
-        const int numElements = m_plogp.size();
+        const int numElements = static_cast<int>(m_plogp.size());
 
         Array3<ByDirection<int>> res({ width, height, numElements });
 
@@ -80,7 +80,7 @@ private:
 
                     for (Direction dir : DirectionHelper::values())
                     {
-                        counts[dir] = compatibile[DirectionHelper::oppositeTo(dir)].size();
+                        counts[dir] = static_cast<int>(compatibile[DirectionHelper::oppositeTo(dir)].size());
                     }
 
                     res[{x, y, elementId}] = counts;
@@ -149,7 +149,7 @@ public:
     // if everything went ok then it should always return a value
     [[nodiscard]] int probe(Coords2i pos) const
     {
-        const int numElements = m_plogp.size();
+        const int numElements = static_cast<int>(m_plogp.size());
 
         for (int i = 0; i < numElements; ++i)
         {
