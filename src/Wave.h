@@ -39,6 +39,8 @@ private:
     // p * log(p)
     std::vector<float> m_plogp;
 
+    Entry m_initEntry;
+
     Array2<Entry> m_memo;
 
     // min { (p * log(p)) / 2 }
@@ -131,7 +133,9 @@ public:
             baseEntropy += m_plogp[i];
         }
 
-        std::fill(std::begin(m_memo), std::end(m_memo), Entry{ baseEntropy, 1.0f, static_cast<int>(freq.size()), -baseEntropy });
+        m_initEntry = Entry{ baseEntropy, 1.0f, static_cast<int>(freq.size()), -baseEntropy };
+
+        std::fill(std::begin(m_memo), std::end(m_memo), m_initEntry);
 
         LOG(g_logger, "baseEntropy = ", baseEntropy, "\n");
         LOG(g_logger, "numAvailableElements = ", freq.size(), "\n");
@@ -144,6 +148,13 @@ public:
     Wave& operator=(const Wave&) = default;
     Wave& operator=(Wave&&) = default;
     ~Wave() = default;
+
+    void reset()
+    {
+        std::fill(std::begin(m_memo), std::end(m_memo), m_initEntry);
+        m_numCompatibile = initNumCompatibile();
+        m_canBePlaced.fill(true);
+    }
 
     // should only be called after whole wave is defined
     // if everything went ok then it should always return a value

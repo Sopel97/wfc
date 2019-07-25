@@ -110,8 +110,9 @@ struct OverlappingModel
     {
     }
 
-    std::optional<Array2<CellType>> observeAll()
+    std::optional<Array2<CellType>> next()
     {
+        m_wave.reset();
         for (;;)
         {
             switch (observeOne())

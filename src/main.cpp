@@ -90,7 +90,8 @@ int main()
         return 1;
     }
     OverlappingModel<ColorRGBi> m(std::move(img), opt);
-    auto v = m.observeAll();
+    auto v = m.next();
+    v = m.next();
     if (v.has_value())
     {
         saveImage(v.value(), "sample_out/flowers.png");
