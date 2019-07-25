@@ -234,7 +234,7 @@ struct D4SymmetryHelper
         return compositions[D4SymmetryHelper::toId(s1)][D4SymmetryHelper::toId(s2)];
     }
 
-    // computes closure but only considers pairs of symmetries from 2 different sets
+    // computes closure but only considers pairs (any from ss1, any from ss2) and vice versa
     [[nodiscard]] static constexpr D4Symmetries biclosure(D4Symmetries ss1, D4Symmetries ss2)
     {
         D4Symmetries ss = ss1 | ss2;
@@ -258,6 +258,35 @@ struct D4SymmetryHelper
                         next |= compose(s2, s1);
                     }
                 }
+            }
+
+            if (next == ss)
+            {
+                return next;
+            }
+
+            ss = next;
+        }
+    }
+
+    // computes closure but only considers pairs (any from ss1, s2) and vice versa
+    [[nodiscard]] static constexpr D4Symmetries biclosure(D4Symmetries ss1, D4Symmetry s2)
+    {
+        D4Symmetries ss = ss1 | s2;
+
+        for (;;)
+        {
+            D4Symmetries next = ss;
+
+            for (D4Symmetry s1 : D4SymmetryHelper::values())
+            {
+                if (!contains(ss1, s1))
+                {
+                    continue;
+                }
+
+                next |= compose(s1, s2);
+                next |= compose(s2, s1);
             }
 
             if (next == ss)
@@ -319,7 +348,7 @@ struct D4SymmetryHelper
             if (!contains(bic, s))
             {
                 m |= s;
-                bic |= biclosure(ssc, m);
+                bic |= biclosure(ssc, s);
             }
         }
 
