@@ -80,9 +80,9 @@ private:
                     
                     ByDirection<int> counts{};
 
-                    for (Direction dir : DirectionHelper::values())
+                    for (Direction dir : values<Direction>())
                     {
-                        counts[dir] = static_cast<int>(compatibile[DirectionHelper::oppositeTo(dir)].size());
+                        counts[dir] = static_cast<int>(compatibile[oppositeTo(dir)].size());
                     }
 
                     res[{x, y, elementId}] = counts;
@@ -292,9 +292,9 @@ public:
             const auto [x, y, elementId] = m_propagationQueue.back();
             m_propagationQueue.pop_back();
 
-            for (const Direction dir : DirectionHelper::values())
+            for (const Direction dir : values<Direction>())
             {
-                const auto [dx, dy] = DirectionHelper::offset(dir);
+                const auto [dx, dy] = offset(dir);
 
                 int x2 = x + dx;
                 if (contains(m_wrapping, WrappingMode::Horizontal))

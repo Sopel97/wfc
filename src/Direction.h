@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 
+#include "Enum.h"
 #include "Coords2.h"
 #include "Util.h"
 
@@ -14,87 +15,94 @@ enum struct Direction : std::uint8_t
     West
 };
 
-struct DirectionHelper
+template <>
+struct EnumTraits<Direction>
 {
-    [[nodiscard]] static constexpr int toId(Direction dir)
+    using IdType = int;
+
+    static constexpr int cardinality = 4;
+
+    // doesn't include identity (Rotation0)
+    static constexpr std::array<Direction, 4> values{
+        Direction::North,
+        Direction::East,
+        Direction::South,
+        Direction::West
+    };
+
+    [[nodiscard]] static constexpr int toId(Direction s) noexcept
     {
-        return static_cast<int>(dir);
+        return static_cast<IdType>(s);
     }
 
-    [[nodiscard]] static constexpr Direction fromId(int id)
+    [[nodiscard]] static constexpr Direction fromId(IdType id) noexcept
     {
         return static_cast<Direction>(id);
     }
-
-    [[nodiscard]] static constexpr Direction rotatedClockwise(Direction dir)
-    {
-        return fromId((toId(dir) + 1) % 4);
-    }
-
-    [[nodiscard]] static constexpr Direction rotatedCounterClockwise(Direction dir)
-    {
-        return fromId((toId(dir) + 3) % 4);
-    }
-
-    [[nodiscard]] static constexpr Direction oppositeTo(Direction dir)
-    {
-        return fromId((toId(dir) + 2) % 4);
-    }
-
-    [[nodiscard]] static constexpr bool areOpposite(Direction d1, Direction d2)
-    {
-        const int diff = toId(d1) - toId(d2);
-        return util::abs(diff) == 2;
-    }
-
-    [[nodiscard]] static constexpr bool areParallel(Direction d1, Direction d2)
-    {
-        const int diff = toId(d1) - toId(d2);
-        return diff == 0 || util::abs(diff) == 2;
-    }
-
-    [[nodiscard]] static constexpr bool arePerpendicular(Direction d1, Direction d2)
-    {
-        const int diff = toId(d1) - toId(d2);
-        return util::abs(diff) == 1 || util::abs(diff) == 3;
-    }
-
-    [[nodiscard]] static Coords2i offset(Direction dir)
-    {
-        static const std::array<Coords2i, 4> offsets{
-            Coords2i(0, -1),
-            Coords2i(1, 0),
-            Coords2i(0, 1),
-            Coords2i(-1, 0)
-        };
-
-        return offsets[toId(dir)];
-    }
-
-    [[nodiscard]] static const std::array<Direction, 4>& values()
-    {
-        static const std::array<Direction, 4> v{
-            Direction::North,
-            Direction::East,
-            Direction::South,
-            Direction::West,
-        };
-
-        return v;
-    }
-
-    [[nodiscard]] static const std::string& toString(Direction dir)
-    {
-        static const std::array<std::string, 4> names{
-            "North",
-            "East",
-            "South",
-            "West"
-        };
-
-        return names[toId(dir)];
-    }
 };
+
+template <>
+[[nodiscard]] constexpr Direction fromId(int id) noexcept
+{
+    return static_cast<Direction>(id);
+}
+
+[[nodiscard]] constexpr Direction rotatedClockwise(Direction dir) noexcept
+{
+    return fromId<Direction>((toId(dir) + 1) % 4);
+}
+
+[[nodiscard]] constexpr Direction rotatedCounterClockwise(Direction dir) noexcept
+{
+    return fromId<Direction>((toId(dir) + 3) % 4);
+}
+
+[[nodiscard]] constexpr Direction oppositeTo(Direction dir) noexcept
+{
+    return fromId<Direction>((toId(dir) + 2) % 4);
+}
+
+[[nodiscard]] constexpr bool areOpposite(Direction d1, Direction d2) noexcept
+{
+    const int diff = toId(d1) - toId(d2);
+    return util::abs(diff) == 2;
+}
+
+[[nodiscard]] constexpr bool areParallel(Direction d1, Direction d2) noexcept
+{
+    const int diff = toId(d1) - toId(d2);
+    return diff == 0 || util::abs(diff) == 2;
+}
+
+[[nodiscard]] constexpr bool arePerpendicular(Direction d1, Direction d2) noexcept
+{
+    const int diff = toId(d1) - toId(d2);
+    return util::abs(diff) == 1 || util::abs(diff) == 3;
+}
+
+[[nodiscard]] constexpr Coords2i offset(Direction dir) noexcept
+{
+    constexpr std::array<Coords2i, 4> offsets{
+        Coords2i(0, -1),
+        Coords2i(1, 0),
+        Coords2i(0, 1),
+        Coords2i(-1, 0)
+    };
+
+    return offsets[toId(dir)];
+}
+
+[[nodiscard]] constexpr std::string_view toString(Direction dir) noexcept
+{
+    constexpr std::array<std::string_view, 4> names{
+        "North",
+        "East",
+        "South",
+        "West"
+    };
+
+    return names[toId(dir)];
+}
 
 template <typename T>
 struct ByDirection : std::array<T, 4>
@@ -115,12 +123,12 @@ struct ByDirection : std::array<T, 4>
 
     [[nodiscard]] constexpr T& operator[](Direction dir)
     {
-        return BaseType::operator[](DirectionHelper::toId(dir));
+        return BaseType::operator[](toId(dir));
     }
 
     [[nodiscard]] constexpr const T& operator[](Direction dir) const
     {
-        return BaseType::operator[](DirectionHelper::toId(dir));
+        return BaseType::operator[](toId(dir));
     }
 
 private:

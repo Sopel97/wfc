@@ -277,9 +277,9 @@ private:
 
         for (int i = 0; i < numPatterns; ++i)
         {
-            for (Direction dir : DirectionHelper::values())
+            for (Direction dir : values<Direction>())
             {
-                const Coords2i dirOffset = DirectionHelper::offset(dir);
+                const Coords2i dirOffset = offset(dir);
                 const Coords2i offset = {
                     dirOffset.x * m_options.stride.width,
                     dirOffset.y * m_options.stride.height

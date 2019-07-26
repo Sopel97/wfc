@@ -166,6 +166,7 @@
     <ClInclude Include="src\Coords2.h" />
     <ClInclude Include="src\Coords3.h" />
     <ClInclude Include="src\Direction.h" />
+    <ClInclude Include="src\Enum.h" />
     <ClInclude Include="src\Logger.h" />
     <ClInclude Include="src\OverlappingModel.h" />
     <ClInclude Include="src\NormalizedHistogram.h" />
