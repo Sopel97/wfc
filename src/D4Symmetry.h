@@ -515,7 +515,7 @@ static_assert(areEquivalentUnderSymmetries(D4SymmetryHelper::closureFromChar('I'
 template <typename Func>
 void forEach(D4Symmetries ss, Func&& func)
 {
-    for (D4Symmetry s : D4SymmetryHelper::values())
+    for (D4Symmetry s : values<D4Symmetry>())
     {
         if (contains(ss, s))
         {

@@ -93,6 +93,9 @@
     <ClInclude Include="src\Enum.h">
       <Filter>Header Files\src</Filter>
     </ClInclude>
+    <ClInclude Include="src\TiledModel.h">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">

@@ -27,11 +27,6 @@ struct NormalizedFrequencies
         return m_frequencies[i];
     }
 
-    void emplace(FrequencyType frequency)
-    {
-        m_frequencies.emplace_back(frequency);
-    }
-
     int size() const
     {
         return static_cast<int>(m_frequencies.size());
@@ -91,12 +86,6 @@ struct NormalizedHistogram : public NormalizedFrequencies
     const ElementsType& elements() const
     {
         return m_elements;
-    }
-
-    void emplace(ElementType&& element, FrequencyType frequency)
-    {
-        m_frequencies.emplace_back(frequency);
-        m_elements.emplace_back(std::move(element));
     }
 
     void reserve(int n)

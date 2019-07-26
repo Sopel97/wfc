@@ -16,7 +16,9 @@
 #include "SmallVector.h"
 #include "Wave.h"
 #include "WrappingMode.h"
+#include "Tile.h"
 #include "D4Symmetry.h"
+#include "TiledModel.h"
 
 static inline Array2<ColorRGBi> loadImage(const std::string& path)
 {
@@ -76,6 +78,8 @@ static inline void saveImage(const Array2<ColorRGBi>& image, const std::string& 
 
 int main()
 {
+    TiledModel<int> mm( TileSet<int>{} );
+
     auto img = loadImage("sample_in/flowers.png");
     OverlappingModelOptions opt{};
     opt.symmetries = D4Symmetries::All;
