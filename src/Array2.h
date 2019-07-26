@@ -9,11 +9,16 @@
 #include "D4Symmetry.h"
 #include "WrappingMode.h"
 
+template <typename T>
+struct Array2;
+
 // stored in column-major order
 // ie. A[x][0..height-1] is contiguous
 template <typename T>
 struct SquareArray2
 {
+    friend struct Array2<T>;
+
     SquareArray2() :
         m_size(0),
         m_values(nullptr)
@@ -264,6 +269,12 @@ struct Array2
     {
     }
 
+    Array2(SquareArray2<T>&& other) noexcept :
+        m_size(other.m_size, other.m_size),
+        m_values(std::move(other.m_values))
+    {
+    }
+
     Array2& operator=(const Array2& other)
     {
         m_size = other.m_size;
@@ -275,6 +286,13 @@ struct Array2
     Array2& operator=(Array2&& other) noexcept
     {
         m_size = other.m_size;
+        m_values = std::move(other.m_values);
+        return *this;
+    }
+
+    Array2& operator=(SquareArray2<T>&& other) noexcept
+    {
+        m_size = { other.m_size, other.m_size };
         m_values = std::move(other.m_values);
         return *this;
     }

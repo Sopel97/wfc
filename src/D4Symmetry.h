@@ -354,6 +354,12 @@ struct D4SymmetryHelper
 
         return m;
     }
+
+    // returns true iff for every `x` with symmetries `ss`: s1(x) == s2(x)
+    [[nodiscard]] static constexpr bool areEquivalentUnderSymmetries(D4Symmetries ss, D4Symmetry s1, D4Symmetry s2)
+    {
+        return closure(ss | s1) == closure(ss | s2);
+    }
 };
 
 static_assert(D4SymmetryHelper::isClosed(D4SymmetryHelper::fromChar('I')));
@@ -363,12 +369,18 @@ static_assert(D4SymmetryHelper::isClosed(D4SymmetryHelper::fromChar('/')));
 static_assert(D4SymmetryHelper::isClosed(D4SymmetryHelper::fromChar('L')));
 static_assert(D4SymmetryHelper::isClosed(D4SymmetryHelper::fromChar('P')));
 
-static_assert(D4SymmetryHelper::missing(D4SymmetryHelper::fromChar('I')) == (D4Symmetries::None | D4Symmetry::Rotation90));
-static_assert(D4SymmetryHelper::missing(D4SymmetryHelper::fromChar('/')) == (D4Symmetries::None | D4Symmetry::Rotation90));
+// The following have different possible results. Here we only test for the current implementation.
+static_assert(D4SymmetryHelper::missing(D4SymmetryHelper::fromChar('I')) == D4Symmetries::Rotation90);
+static_assert(D4SymmetryHelper::missing(D4SymmetryHelper::fromChar('/')) == D4Symmetries::Rotation90);
 static_assert(D4SymmetryHelper::missing(D4SymmetryHelper::fromChar('L')) == D4Symmetries::AllRotations);
 static_assert(D4SymmetryHelper::missing(D4SymmetryHelper::fromChar('T')) == D4Symmetries::AllRotations);
 static_assert(D4SymmetryHelper::missing(D4SymmetryHelper::fromChar('X')) == D4Symmetries::None);
 static_assert(D4SymmetryHelper::missing(D4SymmetryHelper::fromChar('P')) == D4Symmetries::All);
+
+static_assert(D4SymmetryHelper::closure(D4SymmetryHelper::fromChar('I') | D4Symmetry::Rotation90) == D4Symmetries::All);
+
+static_assert(D4SymmetryHelper::areEquivalentUnderSymmetries(D4SymmetryHelper::fromChar('I'), D4Symmetry::Rotation90, D4Symmetry::FlipAboutAntiDiagonal));
+static_assert(D4SymmetryHelper::areEquivalentUnderSymmetries(D4SymmetryHelper::fromChar('I'), D4Symmetry::Rotation90, D4Symmetry::FlipAboutMainDiagonal));
 
 template <typename Func>
 void forEach(D4Symmetries ss, Func&& func)
