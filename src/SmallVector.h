@@ -77,6 +77,8 @@ public:
         {
             new (&(m_data[i])) T(other[i]);
         }
+
+        return *this;
     }
 
     SmallVector& operator=(SmallVector&& other) noexcept
@@ -88,6 +90,8 @@ public:
         {
             new (&(m_data[i])) T(std::move(other[i]));
         }
+
+        return *this;
     }
 
     [[nodiscard]] pointer data()

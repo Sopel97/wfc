@@ -12,11 +12,13 @@ template <typename CellTypeT>
 struct Tile
 {
     using PatternType = SquareArray2<CellTypeT>;
+    using SideIdType = int;
 
-    Tile(PatternType&& basePattern, D4Symmetries symmetries, float weight) :
+    Tile(PatternType&& basePattern, const ByDirection<SideIdType>& sideIds, D4SymmetriesClosure symmetries, float weight) :
         m_distinctPatterns{},
+        m_sideIds(sideIds),
         m_symmetries(symmetries),
-        m_missingSymmetries(D4SymmetryHelper::missing(symmetries)),
+        m_missingSymmetries(missing(symmetries)),
         m_weight(weight)
     {
         m_distinctPatterns = generateSymmetries(std::move(basePattern), m_missingSymmetries);
@@ -71,9 +73,15 @@ struct Tile
         return m_distinctPatterns[indexOf(s)];
     }
 
+    const ByDirection<SideIdType>& sideIds() const
+    {
+        return m_sideIds;
+    }
+
 private:
     SmallVector<PatternType, 8> m_distinctPatterns;
-    D4Symmetries m_symmetries;
+    ByDirection<SideIdType> m_sideIds;
+    D4SymmetriesClosure m_symmetries;
     D4Symmetries m_missingSymmetries; // symmetries that produce the m_distinctPatterns
     float m_weight;
 
@@ -113,21 +121,12 @@ private:
     }
 };
 
-struct TileAdjacency
-{
-    int firstTileId;
-    int secondTileId;
-    Direction firstDirection;
-    Direction secondDirection;
-};
-
 template <typename CellTypeT>
 struct TileSet
 {
     using CellType = CellTypeT;
     using TileType = Tile<CellType>;
     using TileArrayType = std::vector<TileType>;
-    using TileAdjacencyArrayType = std::vector<TileAdjacency>;
 
     TileSet() = default;
 
@@ -135,11 +134,6 @@ struct TileSet
     {
         m_tiles.emplace_back(std::move(tile));
         return size() - 1;
-    }
-
-    void emplace(TileAdjacency adj)
-    {
-        m_adjacencies.emplace_back(adj);
     }
 
     TileType& operator[](int i)
@@ -167,12 +161,6 @@ struct TileSet
         return std::move(m_tiles);
     }
 
-    const TileAdjacencyArrayType& adjacencies() const
-    {
-        return m_adjacencies;
-    }
-
 private:
     TileArrayType m_tiles;
-    TileAdjacencyArrayType m_adjacencies;
 };

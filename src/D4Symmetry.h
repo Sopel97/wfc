@@ -366,6 +366,45 @@ constexpr D4Symmetries& operator^=(D4Symmetries& lhs, D4Symmetry rhs) noexcept
     return mappings[toId(s)];
 }
 
+// inverse of mapping (as if done by inverse symmetry)
+// only rotation90 and rotation270 need to be adjusted, the rest is reversible
+[[nodiscard]] constexpr ByDirection<Direction> invMapping(D4Symmetry s) noexcept
+{
+    constexpr Direction N = Direction::North;
+    constexpr Direction E = Direction::East;
+    constexpr Direction S = Direction::South;
+    constexpr Direction W = Direction::West;
+
+    constexpr std::array<ByDirection<Direction>, 8> mappings{
+        ByDirection<Direction>::nesw(N, E, S, W),
+        ByDirection<Direction>::nesw(E, S, W, N),
+        ByDirection<Direction>::nesw(S, W, N, E),
+        ByDirection<Direction>::nesw(W, N, E, S),
+        ByDirection<Direction>::nesw(S, E, N, W),
+        ByDirection<Direction>::nesw(N, W, S, E),
+        ByDirection<Direction>::nesw(W, S, E, N),
+        ByDirection<Direction>::nesw(E, N, W, S)
+    };
+
+    return mappings[toId(s)];
+}
+
+[[nodiscard]] constexpr D4Symmetry inverse(D4Symmetry s) noexcept
+{
+    constexpr std::array<D4Symmetry, 8> inv{
+        D4Symmetry::Rotation0,
+        D4Symmetry::Rotation270,
+        D4Symmetry::Rotation180,
+        D4Symmetry::Rotation90,
+        D4Symmetry::FlipAboutHorizontalAxis,
+        D4Symmetry::FlipAboutVerticalAxis,
+        D4Symmetry::FlipAboutMainDiagonal,
+        D4Symmetry::FlipAboutAntiDiagonal
+    };
+
+    return inv[toId(s)];
+}
+
 // returns all and only symmetries (`m`) that produce distinct transforms that are
 // not obtainable from any composition of symmetries from `ss`
 // ie. given something with symmetries `ss` what other symmetries are needed to

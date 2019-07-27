@@ -76,9 +76,26 @@ static inline void saveImage(const Array2<ColorRGBi>& image, const std::string& 
     stbi_write_png(path.c_str(), width, height, STBI_rgb, data.data(), width * STBI_rgb);
 }
 
+TileSet<ColorRGBi> makeKnotTileSet()
+{
+    TileSet<ColorRGBi> ts;
+
+    // side ids
+    constexpr int e = 0;
+    constexpr int p = 1;
+
+    const int corner = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/knot/corner.png").square(), ByDirection<int>::nesw(p, p, e, e), D4SymmetryHelper::closureFromChar('L'), 1.0f));
+    const int cross = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/knot/cross.png").square(), ByDirection<int>::nesw(p, p, p, p), D4SymmetryHelper::closureFromChar('I'), 1.0f));
+    const int empty = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/knot/empty.png").square(), ByDirection<int>::nesw(e, e, e, e), D4SymmetryHelper::closureFromChar('X'), 1.0f));
+    const int line = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/knot/line.png").square(), ByDirection<int>::nesw(e, p, e, p), D4SymmetryHelper::closureFromChar('I'), 1.0f));
+    const int t = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/knot/t.png").square(), ByDirection<int>::nesw(e, p, p, p), D4SymmetryHelper::closureFromChar('T'), 1.0f));
+
+    return ts;
+}
+
 int main()
 {
-    TiledModel<int> mm( TileSet<int>{} );
+    TiledModel<ColorRGBi> mm( makeKnotTileSet() );
 
     auto img = loadImage("sample_in/flowers.png");
     OverlappingModelOptions opt{};
@@ -87,7 +104,7 @@ int main()
     opt.outputWrapping = WrappingMode::All;
     opt.patternSize = 3;
     opt.stride = { 1, 1 };
-    opt.setOutputSizeAtLeast({ 64, 64 });
+    opt.setOutputSizeAtLeast({ 32, 32 });
     if (!opt.isValid())
     {
         std::cout << "Invalid config\n";

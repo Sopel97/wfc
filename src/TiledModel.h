@@ -55,36 +55,42 @@ private:
 
         Wave::CompatibilityArrayType compatibilities(numPatterns);
 
-        const auto& adjacencies = tiles.adjacencies();
-
-        for (const TileAdjacency& adj : adjacencies)
+        int firstTileId = 0;
+        for (const auto& firstTile : tiles.tiles())
         {
-            const auto& firstTile = tiles[adj.firstTileId];
-            const auto& secondTile = tiles[adj.secondTileId];
+            int secondTileId = 0;
+            for (const auto& secondTile : tiles.tiles())
+            {
+                int i = 0;
+                firstTile.forEachDistinct([&](const auto& pattern, D4Symmetry s1) {
+                    int j = 0;
+                    secondTile.forEachDistinct([&](const auto& pattern, D4Symmetry s2) {
+                        // we try to put the two tiles in all possible side by side configurations
+                        for (Direction connectionDir : values<Direction>())
+                        {
+                            // we need to know to which original side each transformed side
+                            // corresponds to
+                            const Direction firstOriginalDirection = invMapping(s1)[connectionDir];
+                            const Direction secondOriginalDirection = invMapping(s2)[oppositeTo(connectionDir)];
 
-            int i = 0;
-            firstTile.forEachDistinct([&](const auto& pattern, D4Symmetry s1) {
-                int j = 0;
-                secondTile.forEachDistinct([&](const auto& pattern, D4Symmetry s2) {
-                    const Direction firstDirection = mapping(s1)[adj.firstDirection];
-                    const Direction secondDirection = mapping(s2)[adj.secondDirection];
+                            if (firstTile.sideIds()[firstOriginalDirection] == secondTile.sideIds()[secondOriginalDirection])
+                            {
+                                const int firstPatternId = flattenedIndex[firstTileId] + i;
+                                const int secondPatternId = flattenedIndex[secondTileId] + j;
 
-                    if (!areOpposite(firstDirection, secondDirection))
-                    {
-                        return;
-                    }
+                                // TODO: maybe go through a dense bool array first to ensure there are no duplicates?
+                                compatibilities[firstPatternId][connectionDir].emplace_back(secondPatternId);
+                            }
+                        }
 
-                    const int firstPatternId = flattenedIndex[adj.firstTileId] + i;
-                    const int secondPatternId = flattenedIndex[adj.secondTileId] + j;
+                        ++j;
+                    });
 
-                    compatibilities[firstPatternId][firstDirection].emplace_back(secondPatternId);
-                    compatibilities[secondPatternId][secondDirection].emplace_back(firstPatternId);
-
-                    ++j;
+                    ++i;
                 });
-
-                i += 1;
-            });
+                ++secondTileId;
+            }
+            ++firstTileId;
         }
 
         return compatibilities;

@@ -207,6 +207,12 @@ struct SquareArray2
 private:
     int m_size;
     std::unique_ptr<T[]> m_values;
+
+    explicit SquareArray2(int size, std::unique_ptr<T[]>&& values) :
+        m_size(size),
+        m_values(std::move(values))
+    {
+    }
 };
 
 template <typename T, typename Func>
@@ -383,6 +389,23 @@ struct Array2
             return sub<WrappingMode::Vertical>(topLeft, newSize);
         case WrappingMode::All:
             return sub<WrappingMode::All>(topLeft, newSize);
+        }
+    }
+
+    SquareArray2<T> square() const &
+    {
+        return sub<WrappingMode::None>({ 0, 0 }, std::min(m_size.width, m_size.height));
+    }
+
+    SquareArray2<T> square() &&
+    {
+        if (m_size.width == m_size.height)
+        {
+            return SquareArray2<T>(m_size.width, std::move(m_values));
+        }
+        else
+        {
+            return sub<WrappingMode::None>({ 0, 0 }, std::min(m_size.width, m_size.height));
         }
     }
 
