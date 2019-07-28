@@ -485,10 +485,13 @@ void forEach(const Array2<T>& a, Func&& func)
     }
 }
 
+// respects order of symmetries defined in D4Symmetry
 template <typename T>
 [[nodiscard]] SmallVector<SquareArray2<T>, 8> generateSymmetries(SquareArray2<T>&& pattern, D4Symmetries symmetries)
 {
     SmallVector<SquareArray2<T>, 8> sym;
+
+    sym.emplace_back(SquareArray2<T>{}); // placeholder
 
     if (contains(symmetries, D4Symmetry::Rotation90))
     {
@@ -519,7 +522,7 @@ template <typename T>
         sym.emplace_back(pattern.flippedAboutAntiDiagonal());
     }
 
-    sym.emplace_back(std::move(pattern));
+    sym[0] = std::move(pattern);
 
     return sym;
 }

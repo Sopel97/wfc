@@ -95,8 +95,24 @@ TileSet<ColorRGBi> makeKnotTileSet()
 
 int main()
 {
-    TiledModel<ColorRGBi> mm( makeKnotTileSet() );
+    TiledModelOptions opt;
+    opt.outputSize = { 64, 64 };
+    opt.outputWrapping = WrappingMode::All;
+    TiledModel<ColorRGBi> m(makeKnotTileSet(), opt);
 
+    auto v = m.next();
+    v = m.next();
+    if (v.has_value())
+    {
+        saveImage(v.value(), "sample_out/knot.png");
+    }
+    else
+    {
+        std::cout << "contradiction\n";
+        return 2;
+    }
+
+    /*
     auto img = loadImage("sample_in/flowers.png");
     OverlappingModelOptions opt{};
     opt.symmetries = D4Symmetries::All;
@@ -122,6 +138,7 @@ int main()
         std::cout << "contradiction\n";
         return 2;
     }
+    */
 
     return 0;
 }
