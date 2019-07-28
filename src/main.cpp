@@ -95,50 +95,52 @@ TileSet<ColorRGBi> makeKnotTileSet()
 
 int main()
 {
-    TiledModelOptions opt;
-    opt.outputSize = { 64, 64 };
-    opt.outputWrapping = WrappingMode::All;
-    TiledModel<ColorRGBi> m(makeKnotTileSet(), opt);
+    {
+        TiledModelOptions opt;
+        opt.outputSize = { 64, 64 };
+        opt.outputWrapping = WrappingMode::All;
+        TiledModel<ColorRGBi> m(makeKnotTileSet(), opt);
 
-    auto v = m.next();
-    v = m.next();
-    if (v.has_value())
-    {
-        saveImage(v.value(), "sample_out/knot.png");
-    }
-    else
-    {
-        std::cout << "contradiction\n";
-        return 2;
+        auto v = m.next();
+        v = m.next();
+        if (v.has_value())
+        {
+            saveImage(v.value(), "sample_out/knot.png");
+        }
+        else
+        {
+            std::cout << "contradiction\n";
+            return 2;
+        }
     }
 
-    /*
-    auto img = loadImage("sample_in/flowers.png");
-    OverlappingModelOptions opt{};
-    opt.symmetries = D4Symmetries::All;
-    opt.inputWrapping = WrappingMode::All;
-    opt.outputWrapping = WrappingMode::All;
-    opt.patternSize = 3;
-    opt.stride = { 1, 1 };
-    opt.setOutputSizeAtLeast({ 32, 32 });
-    if (!opt.isValid())
     {
-        std::cout << "Invalid config\n";
-        return 1;
+        auto img = loadImage("sample_in/flowers.png");
+        OverlappingModelOptions opt{};
+        opt.symmetries = D4Symmetries::All;
+        opt.inputWrapping = WrappingMode::All;
+        opt.outputWrapping = WrappingMode::All;
+        opt.patternSize = 3;
+        opt.stride = { 1, 1 };
+        opt.setOutputSizeAtLeast({ 32, 32 });
+        if (!opt.isValid())
+        {
+            std::cout << "Invalid config\n";
+            return 1;
+        }
+        OverlappingModel<ColorRGBi> m(img, opt);
+        auto v = m.next();
+        v = m.next();
+        if (v.has_value())
+        {
+            saveImage(v.value(), "sample_out/flowers.png");
+        }
+        else
+        {
+            std::cout << "contradiction\n";
+            return 2;
+        }
     }
-    OverlappingModel<ColorRGBi> m(std::move(img), opt);
-    auto v = m.next();
-    v = m.next();
-    if (v.has_value())
-    {
-        saveImage(v.value(), "sample_out/flowers.png");
-    }
-    else
-    {
-        std::cout << "contradiction\n";
-        return 2;
-    }
-    */
 
     return 0;
 }

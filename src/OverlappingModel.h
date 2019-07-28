@@ -13,6 +13,7 @@
 #include "D4Symmetry.h"
 #include "WrappingMode.h"
 #include "Logger.h"
+#include "Model.h"
 
 struct OverlappingModelOptions
 {
@@ -96,35 +97,16 @@ private:
 };
 
 template <typename CellTypeT>
-struct OverlappingModel
+struct OverlappingModel : Model<CellTypeT>
 {
     using CellType = CellTypeT;
-    using RandomNumberGeneratorType = pcg64_fast;
+    using BaseType = Model<CellType>;
 
-    OverlappingModel(Array2<CellType>&& input, const OverlappingModelOptions& options) :
-        m_rng(options.seed),
-        m_input(std::move(input)),
-        m_options(options),
-        m_patterns(gatherPatterns()),
-        m_wave(computeCompatibilities(), options.waveSize(), m_patterns, m_options.outputWrapping)
+    OverlappingModel(const Array2<CellType>& input, const OverlappingModelOptions& options) :
+        // let's hope the compiler will call gatherPatterns only once
+        BaseType({options.seed}, gatherPatterns(input, options), computeCompatibilities(input, options), options.waveSize(), options.outputWrapping),
+        m_options(options)
     {
-    }
-
-    std::optional<Array2<CellType>> next()
-    {
-        m_wave.reset();
-        for (;;)
-        {
-            switch (observeOne())
-            {
-            case ObservationResult::Contradiction:
-                return std::nullopt;
-            case ObservationResult::Finished:
-                return decodeOutput();
-            default:
-                continue;
-            }
-        }
     }
 
     const OverlappingModelOptions& options() const
@@ -133,22 +115,11 @@ struct OverlappingModel
     }
 
 private:
-    RandomNumberGeneratorType m_rng;
-    Array2<CellType> m_input;
     OverlappingModelOptions m_options;
-    Patterns<CellType> m_patterns;
-    Wave m_wave;
 
-    enum struct ObservationResult
+    [[nodiscard]] Array2<CellType> decodeOutput() const override
     {
-        Contradiction,
-        Finished,
-        Unfinished
-    };
-
-    [[nodiscard]] Array2<CellType> decodeOutput() const
-    {
-        const Array2<int> wave = m_wave.probeAll();
+        const Array2<int> wave = this->wave().probeAll();
         const Size2i waveSize = wave.size();
 
         const auto [sx, sy] = m_options.stride;
@@ -160,12 +131,12 @@ private:
         {
             for (int y = 0; y < waveSize.height; ++y)
             {
-                const auto& pattern = m_patterns.element(wave[x][y]);
+                const auto& pattern = this->patterns().element(wave[x][y]);
                 for (int xx = 0; xx < sx; ++xx)
                 {
                     for (int yy = 0; yy < sy; ++yy)
                     {
-                        out[x*sx+xx][y*sy+yy] = pattern[xx][yy];
+                        out[x * sx + xx][y * sy + yy] = pattern[xx][yy];
                     }
                 }
             }
@@ -178,7 +149,7 @@ private:
             {
                 for (int y = 0; y < waveSize.height; ++y)
                 {
-                    const auto& pattern = m_patterns.element(wave[waveSize.width - 1][y]);
+                    const auto& pattern = this->patterns().element(wave[waveSize.width - 1][y]);
                     for (int yy = 0; yy < sy; ++yy)
                     {
                         out[waveSize.width * sx + dx - sx][y * sy + yy] = pattern[dx][yy];
@@ -192,7 +163,7 @@ private:
             // there are `m_options.patternSize - 1` rows left on the bottom
             for (int x = 0; x < waveSize.width; ++x)
             {
-                const auto& pattern = m_patterns.element(wave[x][waveSize.height - 1]);
+                const auto& pattern = this->patterns().element(wave[x][waveSize.height - 1]);
                 for (int dy = sy; dy < m_options.patternSize; ++dy)
                 {
                     for (int xx = 0; xx < sx; ++xx)
@@ -206,7 +177,7 @@ private:
         if (m_options.outputWrapping == WrappingMode::None)
         {
             // fill the corner
-            const auto& pattern = m_patterns.element(wave[waveSize.width - 1][waveSize.height - 1]);
+            const auto& pattern = this->patterns().element(wave[waveSize.width - 1][waveSize.height - 1]);
             for (int dx = sx; dx < m_options.patternSize; ++dx)
             {
                 for (int dy = sy; dy < m_options.patternSize; ++dy)
@@ -219,59 +190,14 @@ private:
         return out;
     }
 
-    [[nodiscard]] ObservationResult observeOne() noexcept
-    {
-        const auto [status, pos] = m_wave.posWithMinimalEntropy(m_rng);
-
-        if (status == Wave::MinimalEntropyQueryResult::Contradiction)
-        {
-            return ObservationResult::Contradiction;
-        }
-
-        if (status == Wave::MinimalEntropyQueryResult::Finished)
-        {
-            return ObservationResult::Finished;
-        }
-
-        LOG(g_logger, "Observed (", pos.x, ", ", pos.y, ")\n");
-
-        const int numPatterns = m_patterns.size();
-
-        // choose an element according to the pattern distribution
-        std::vector<float> ps;
-        ps.reserve(numPatterns);
-        {
-            for (int i = 0; i < numPatterns; ++i)
-            {
-                ps.emplace_back(m_wave.canBePlaced(pos, i) ? m_patterns.frequency(i) : 0.0f);
-            }
-        }
-
-        std::discrete_distribution<int> dPatternId(std::begin(ps), std::end(ps));
-        const int patternId = dPatternId(m_rng);
-
-        // define the cell with the chosen pattern by disabling others
-        for (int i = 0; i < numPatterns; ++i)
-        {
-            if (i == patternId)
-            {
-                continue;
-            }
-
-            m_wave.makeUnplacable(pos, i);
-        }
-
-        m_wave.propagate();
-
-        return ObservationResult::Unfinished;
-    }
-
     // precomputed pattern adjacency compatibilities using overlapEqualWhenOffset
-    [[nodiscard]] Wave::CompatibilityArrayType computeCompatibilities() const
+    [[nodiscard]] static Wave::CompatibilityArrayType computeCompatibilities(const Array2<CellType>& input, const OverlappingModelOptions& options)
     {
         LOG(g_logger, "Started computing compatibilities\n");
 
-        const int numPatterns = m_patterns.size();
+        const auto patterns = gatherPatterns(input, options);
+
+        const int numPatterns = patterns.size();
 
         Wave::CompatibilityArrayType compatibilities(numPatterns);
 
@@ -281,14 +207,14 @@ private:
             {
                 const Coords2i dirOffset = offset(dir);
                 const Coords2i offset = {
-                    dirOffset.x * m_options.stride.width,
-                    dirOffset.y * m_options.stride.height
+                    dirOffset.x * options.stride.width,
+                    dirOffset.y * options.stride.height
                 };
 
                 for (int j = 0; j < numPatterns; ++j)
                 {
-                    const auto& pattern1 = m_patterns.element(i);
-                    const auto& pattern2 = m_patterns.element(j);
+                    const auto& pattern1 = patterns.element(i);
+                    const auto& pattern2 = patterns.element(j);
 
                     if (overlapEqualWhenOffset(pattern1, pattern2, offset))
                     {
@@ -303,21 +229,21 @@ private:
         return compatibilities;
     }
 
-    [[nodiscard]] Patterns<CellType> gatherPatterns() const
+    [[nodiscard]] static Patterns<CellType> gatherPatterns(const Array2<CellType>& input, const OverlappingModelOptions& options)
     {
-        const Size2i inputSize = m_input.size();
-        const int patternSize = m_options.patternSize;
+        const Size2i inputSize = input.size();
+        const int patternSize = options.patternSize;
 
         std::map<SquareArray2<CellType>, float> histogram;
 
         const int xbegin = 0;
         const int xend = 
-            contains(m_options.inputWrapping, WrappingMode::Horizontal) 
+            contains(options.inputWrapping, WrappingMode::Horizontal)
             ? inputSize.width 
             : inputSize.width - patternSize + 1;
         const int ybegin = 0;
         const int yend =
-            contains(m_options.inputWrapping, WrappingMode::Vertical)
+            contains(options.inputWrapping, WrappingMode::Vertical)
             ? inputSize.height
             : inputSize.height - patternSize + 1;
 
@@ -325,7 +251,7 @@ private:
         {
             for (int y = ybegin; y < yend; ++y)
             {
-                auto patterns = generateSymmetries(m_input.sub({ x, y }, patternSize, m_options.inputWrapping), m_options.symmetries);
+                auto patterns = generateSymmetries(input.sub({ x, y }, patternSize, options.inputWrapping), options.symmetries);
                 for (auto&& pattern : patterns)
                 {
                     histogram[std::move(pattern)] += 1.0f;

@@ -14,6 +14,7 @@
 #include "D4Symmetry.h"
 #include "WrappingMode.h"
 #include "Logger.h"
+#include "Model.h"
 
 struct TiledModelOptions
 {
@@ -38,57 +39,33 @@ struct TiledModelOptions
 };
 
 template <typename CellTypeT>
-struct TiledModel
+struct TiledModel : Model<CellTypeT>
 {
     using CellType = CellTypeT;
-    using RandomNumberGeneratorType = pcg64_fast;
     using PatternsEntryType = std::pair<typename Patterns<CellType>::ElementType, float>;
     using TileSetType = TileSet<CellType>;
+    using BaseType = Model<CellType>;
 
     TiledModel(const TileSetType& tiles, const TiledModelOptions& options) : 
-        m_rng(options.seed),
-        m_options(options),
-        m_patterns(flattenPatterns(tiles)),
-        m_wave(computeCompatibilities(tiles), options.waveSize(), m_patterns, WrappingMode::All)
+        BaseType({options.seed}, flattenPatterns(tiles), computeCompatibilities(tiles), options.waveSize(), options.outputWrapping),
+        m_options(options)
     {
     }
 
-    std::optional<Array2<CellType>> next()
+    const TiledModelOptions& options() const
     {
-        m_wave.reset();
-        for (;;)
-        {
-            switch (observeOne())
-            {
-            case ObservationResult::Contradiction:
-                return std::nullopt;
-            case ObservationResult::Finished:
-                return decodeOutput();
-            default:
-                continue;
-            }
-        }
+        return m_options;
     }
 
 private:
-    RandomNumberGeneratorType m_rng;
     TiledModelOptions m_options;
-    Patterns<CellType> m_patterns;
-    Wave m_wave;
 
-    enum struct ObservationResult
+    [[nodiscard]] Array2<CellType> decodeOutput() const override
     {
-        Contradiction,
-        Finished,
-        Unfinished
-    };
-
-    [[nodiscard]] Array2<CellType> decodeOutput() const
-    {
-        const Array2<int> wave = m_wave.probeAll();
+        const Array2<int> wave = this->wave().probeAll();
         const Size2i waveSize = wave.size();
 
-        const int tileSize = m_patterns.element(0).size();
+        const int tileSize = this->patterns().element(0).size();
 
         Array2<CellType> out(m_options.outputSize * tileSize);
 
@@ -96,7 +73,7 @@ private:
         {
             for (int y = 0; y < waveSize.height; ++y)
             {
-                const auto& pattern = m_patterns.element(wave[x][y]);
+                const auto& pattern = this->patterns().element(wave[x][y]);
 
                 for (int xx = 0; xx < tileSize; ++xx)
                 {
@@ -111,54 +88,7 @@ private:
         return out;
     }
 
-    [[nodiscard]] ObservationResult observeOne() noexcept
-    {
-        const auto [status, pos] = m_wave.posWithMinimalEntropy(m_rng);
-
-        if (status == Wave::MinimalEntropyQueryResult::Contradiction)
-        {
-            return ObservationResult::Contradiction;
-        }
-
-        if (status == Wave::MinimalEntropyQueryResult::Finished)
-        {
-            return ObservationResult::Finished;
-        }
-
-        LOG(g_logger, "Observed (", pos.x, ", ", pos.y, ")\n");
-
-        const int numPatterns = m_patterns.size();
-
-        // choose an element according to the pattern distribution
-        std::vector<float> ps;
-        ps.reserve(numPatterns);
-        {
-            for (int i = 0; i < numPatterns; ++i)
-            {
-                ps.emplace_back(m_wave.canBePlaced(pos, i) ? m_patterns.frequency(i) : 0.0f);
-            }
-        }
-
-        std::discrete_distribution<int> dPatternId(std::begin(ps), std::end(ps));
-        const int patternId = dPatternId(m_rng);
-
-        // define the cell with the chosen pattern by disabling others
-        for (int i = 0; i < numPatterns; ++i)
-        {
-            if (i == patternId)
-            {
-                continue;
-            }
-
-            m_wave.makeUnplacable(pos, i);
-        }
-
-        m_wave.propagate();
-
-        return ObservationResult::Unfinished;
-    }
-
-    [[nodiscard]] Patterns<CellType> flattenPatterns(const TileSetType& tiles) const
+    [[nodiscard]] static Patterns<CellType> flattenPatterns(const TileSetType& tiles)
     {
         std::vector<PatternsEntryType> patterns;
 
@@ -173,7 +103,7 @@ private:
     }
 
     // ensures index compatibility with output from flattenPatterns()
-    [[nodiscard]] Wave::CompatibilityArrayType computeCompatibilities(const TileSetType& tiles) const
+    [[nodiscard]] static Wave::CompatibilityArrayType computeCompatibilities(const TileSetType& tiles)
     {
         std::vector<int> flattenedIndex;
         flattenedIndex.reserve(tiles.size());
