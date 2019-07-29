@@ -144,10 +144,12 @@ public:
 
         std::fill(std::begin(m_memo), std::end(m_memo), m_initEntry);
 
-        LOG(g_logger, "baseEntropy = ", baseEntropy, "\n");
-        LOG(g_logger, "numAvailableElements = ", freq.size(), "\n");
-        LOG(g_logger, "entropy = ", -baseEntropy, "\n");
-        LOG(g_logger, "noiseMax = ", m_noiseMax, "\n");
+        LOG_INFO(g_logger, "Created wave");
+        LOG_INFO(g_logger, "baseEntropy = ", baseEntropy);
+        LOG_INFO(g_logger, "numAvailableElements = ", freq.size());
+        LOG_INFO(g_logger, "entropy = ", -baseEntropy);
+        LOG_INFO(g_logger, "noiseMax = ", m_noiseMax);
+        LOG_INFO(g_logger, "size = (", m_size.width, ", ", m_size.height, ")");
     }
 
     Wave(const Wave&) = default;

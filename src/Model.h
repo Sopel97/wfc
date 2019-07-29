@@ -71,7 +71,7 @@ protected:
             return ObservationResult::Finished;
         }
 
-        LOG(g_logger, "Observed (", pos.x, ", ", pos.y, ")\n");
+        LOG_DEBUG(g_logger, "Observed (", pos.x, ", ", pos.y, ")");
 
         const int numPatterns = m_patterns.size();
 

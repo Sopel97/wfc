@@ -50,6 +50,7 @@ struct TiledModel : Model<CellTypeT>
         BaseType({options.seed}, flattenPatterns(tiles), computeCompatibilities(tiles), options.waveSize(), options.outputWrapping),
         m_options(options)
     {
+        LOG_INFO(g_logger, "Created tiled model");
     }
 
     const TiledModelOptions& options() const
@@ -98,6 +99,8 @@ private:
                 patterns.emplace_back(pattern, tile.weight());
                 });
         }
+
+        LOG_INFO(g_logger, "Gathered ", patterns.size(), " patterns");
 
         return Patterns<CellType>(std::begin(patterns), std::end(patterns));
     }

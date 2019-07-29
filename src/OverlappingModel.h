@@ -107,6 +107,7 @@ struct OverlappingModel : Model<CellTypeT>
         BaseType({options.seed}, gatherPatterns(input, options), computeCompatibilities(input, options), options.waveSize(), options.outputWrapping),
         m_options(options)
     {
+        LOG_INFO(g_logger, "Created overlapping model");
     }
 
     const OverlappingModelOptions& options() const
@@ -193,9 +194,9 @@ private:
     // precomputed pattern adjacency compatibilities using overlapEqualWhenOffset
     [[nodiscard]] static Wave::CompatibilityArrayType computeCompatibilities(const Array2<CellType>& input, const OverlappingModelOptions& options)
     {
-        LOG(g_logger, "Started computing compatibilities\n");
-
         const auto patterns = gatherPatterns(input, options);
+
+        LOG_INFO(g_logger, "Gathered ", patterns.size(), " patterns");
 
         const int numPatterns = patterns.size();
 
@@ -223,8 +224,6 @@ private:
                 }
             }
         }
-
-        LOG(g_logger, "Finished computing compatibilities\n");
 
         return compatibilities;
     }
@@ -258,8 +257,6 @@ private:
                 }
             }
         }
-
-        LOG(g_logger, "Gathered ", histogram.size(), " patterns\n");
 
         return Patterns<CellType>(std::begin(histogram), std::end(histogram));
     }

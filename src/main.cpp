@@ -19,9 +19,12 @@
 #include "Tile.h"
 #include "D4Symmetry.h"
 #include "TiledModel.h"
+#include "Logger.h"
 
 static inline Array2<ColorRGBi> loadImage(const std::string& path)
 {
+    LOG_INFO(g_logger, "Loading ", path);
+
     int width, height, channels;
     unsigned char* data = stbi_load(
         path.c_str(),
@@ -56,6 +59,8 @@ static inline Array2<ColorRGBi> loadImage(const std::string& path)
 
 static inline void saveImage(const Array2<ColorRGBi>& image, const std::string& path)
 {
+    LOG_INFO(g_logger, "Saving ", path);
+
     std::vector<unsigned char> data;
     data.reserve(image.size().total() * 3);
 
@@ -109,8 +114,7 @@ int main()
         }
         else
         {
-            std::cout << "contradiction\n";
-            return 2;
+            LOG_ERROR(g_logger, "Contradiction\n");
         }
     }
 
@@ -137,8 +141,7 @@ int main()
         }
         else
         {
-            std::cout << "contradiction\n";
-            return 2;
+            LOG_ERROR(g_logger, "Contradiction\n");
         }
     }
 
