@@ -202,14 +202,13 @@ public:
         return m_canBePlaced[{pos, elementId}];
     }
 
-    // returns number of patterns left
-    int makeUnplacable(Coords2i pos, int elementId)
+    void makeUnplacable(Coords2i pos, int elementId)
     {
         const int idx = m_canBePlaced.getFlatIndex({ pos, elementId });
         auto& canBePlaced = m_canBePlaced.data()[idx];
         if (!canBePlaced)
         {
-            return m_memo[pos].numAvailableElements;
+            return;
         }
 
         canBePlaced = false;
@@ -222,112 +221,163 @@ public:
         memo.pSum -= (*m_p)[elementId];
         memo.numAvailableElements -= 1;
         memo.entropy = std::log(memo.pSum) - memo.plogpSum / memo.pSum;
-
-        return memo.numAvailableElements;
     }
 
     template <typename RngT>
-    [[nodiscard]] std::pair<MinimalEntropyQueryResult, Coords2i> posWithMinimalEntropy(RngT&& rng) const
+    __declspec(noinline) [[nodiscard]] std::pair<MinimalEntropyQueryResult, Coords2i> posWithMinimalEntropy(RngT&& rng) const
     {
-        static constexpr Coords2i invalidCoords(-1, -1);
+        constexpr int invalidArg = -1;
 
         std::uniform_real_distribution<float> dNoise(0.0f, m_noiseMax);
 
         float minEntropy = std::numeric_limits<float>::max();
-        Coords2i minArg = invalidCoords;
+        int minArg = invalidArg;
 
         auto [width, height] = size();
 
-        int idx = 0;
-        for (int x = 0; x < width; ++x)
+        for (int i = 0; i < width * height; ++i)
         {
-            for (int y = 0; y < height; ++y)
+            const auto& memo = m_memo.data()[i];
+            const int numAvailable = memo.numAvailableElements;
+            if (numAvailable == 0)
             {
-                const auto& memo = m_memo.data()[idx++];
-                const int numAvailable = memo.numAvailableElements;
-                if (numAvailable == 0)
-                {
-                    // there's cannot be an unassignable element
-                    return { MinimalEntropyQueryResult::Contradiction, {} };
-                }
-                else if (numAvailable == 1)
-                {
-                    // already settled
-                    continue;
-                }
+                // there's cannot be an unassignable element
+                return { MinimalEntropyQueryResult::Contradiction, {} };
+            }
+            else if (numAvailable == 1)
+            {
+                // already settled
+                continue;
+            }
 
-                // still in superposition
-                const float entropy = memo.entropy;
-                if (entropy < minEntropy)
+            // still in superposition
+            const float entropy = memo.entropy;
+            if (entropy < minEntropy)
+            {
+                // TODO: if we can move this rng call somewhere else then this
+                // loop can be parallelised and preserve determinism
+                // maybe update noise in `makeUnplacable`?
+                const float noise = dNoise(rng);
+                if (entropy + noise < minEntropy)
                 {
-                    const float noise = dNoise(rng);
-                    if (entropy + noise < minEntropy)
-                    {
-                        minEntropy = entropy + noise;
-                        minArg = { x, y };
-                    }
+                    minEntropy = entropy + noise;
+                    minArg = i;
                 }
             }
         }
 
         // all settled
-        if (minArg == invalidCoords)
+        if (minArg == invalidArg)
         {
             return { MinimalEntropyQueryResult::Finished, {} };
         }
 
-        return { MinimalEntropyQueryResult::Success, minArg };
+        return { MinimalEntropyQueryResult::Success, m_memo.coordsFromFlatIndex(minArg) };
     }
 
     void propagate()
     {
-        const Size2i waveSize = size();
+        switch (m_wrapping)
+        {
+        case WrappingMode::None:
+            propagateImpl<WrappingMode::None>();
+        case WrappingMode::Horizontal:
+            propagateImpl<WrappingMode::Horizontal>();
+        case WrappingMode::Vertical:
+            propagateImpl<WrappingMode::Vertical>();
+        case WrappingMode::All:
+            propagateImpl<WrappingMode::All>();
+        }
+    }
 
+private:
+    template <WrappingMode WrapV>
+    __declspec(noinline) void propagateImpl()
+    {
         while (!m_propagationQueue.empty())
         {
             const auto [x, y, elementId] = m_propagationQueue.back();
             m_propagationQueue.pop_back();
 
-            for (const Direction dir : values<Direction>())
-            {
-                const auto [dx, dy] = offset(dir);
-
-                int x2 = x + dx;
-                if (contains(m_wrapping, WrappingMode::Horizontal))
-                {
-                    x2 = (x2 + waveSize.width) % waveSize.width;
-                }
-                else if (x2 < 0 || x2 >= waveSize.width)
-                {
-                    continue;
-                }
-
-                int y2 = y + dy;
-                if (contains(m_wrapping, WrappingMode::Vertical))
-                {
-                    y2 = (y2 + waveSize.height) % waveSize.height;
-                }
-                else if (y2 < 0 || y2 >= waveSize.height)
-                {
-                    continue;
-                }
-
-                const auto& compatibileElements = m_compatibile[elementId][dir];
-                auto* numCompatibile = m_numCompatibile[{ x2, y2 }];
-                for (const int compatibileElementId : compatibileElements)
-                {
-                    // decrease the number of compatibile elements
-                    // and handle the case when we end up with none compatibile left
-
-                    auto& count = numCompatibile[compatibileElementId][dir];
-                    count -= 1;
-
-                    if (count == 0) 
-                    {
-                        makeUnplacable({ x2, y2 }, compatibileElementId);
-                    }
-                }
-            }
+            applyOffsetAndPropagate<WrapV, Direction::North>(x, y, elementId);
+            applyOffsetAndPropagate<WrapV, Direction::East>(x, y, elementId);
+            applyOffsetAndPropagate<WrapV, Direction::South>(x, y, elementId);
+            applyOffsetAndPropagate<WrapV, Direction::West>(x, y, elementId);
         }
     }
+
+    // wraps to size of the wave
+    template <WrappingMode WrapV, Direction DirV>
+    void applyOffsetAndPropagate(int x, int y, int elementId)
+    {
+        constexpr int dx = offset(DirV).x;
+        constexpr int dy = offset(DirV).y;
+        constexpr bool hWrap = contains(WrapV, WrappingMode::Horizontal);
+        constexpr bool vWrap = contains(WrapV, WrappingMode::Vertical);
+
+        const Size2i waveSize = size();
+
+        int x2 = x;
+        int y2 = y;
+        if constexpr (dx != 0)
+        {
+            x2 += dx;
+            if constexpr (hWrap)
+            {
+                x2 = (x2 + waveSize.width) % waveSize.width;
+            }
+            else if constexpr (dx < 0)
+            {
+                if (x2 < 0)
+                {
+                    return;
+                }
+            }
+            else if (x2 >= waveSize.width)
+            {
+                return;
+            }
+        }
+
+        if constexpr (dy != 0)
+        {
+            y2 += dy;
+            if constexpr (vWrap)
+            {
+                y2 = (y2 + waveSize.height) % waveSize.height;
+            }
+            else if constexpr (dy < 0)
+            {
+                if (y2 < 0)
+                {
+                    return;
+                }
+            }
+            else if (y2 >= waveSize.height)
+            {
+                return;
+            }
+        }
+
+        propagateTo(DirV, { x2, y2 }, elementId);
+    }
+
+    void propagateTo(Direction dir, Coords2i pos, int elementId)
+    {
+        const auto& compatibileElements = m_compatibile[elementId][dir];
+        auto* numCompatibile = m_numCompatibile[pos];
+        for (const int compatibileElementId : compatibileElements)
+        {
+            // decrease the number of compatibile elements
+            // and handle the case when we end up with none compatibile left
+
+            auto& count = numCompatibile[compatibileElementId][dir];
+            count -= 1;
+
+            if (count == 0)
+            {
+                makeUnplacable(pos, compatibileElementId);
+            }
+        }
+    };
 };
