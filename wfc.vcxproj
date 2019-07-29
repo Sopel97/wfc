@@ -161,11 +161,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="lib\pcg_extras.hpp" />
-    <ClInclude Include="lib\pcg_random.hpp" />
-    <ClInclude Include="lib\pcg_uint128.hpp" />
-    <ClInclude Include="lib\stb_image.h" />
-    <ClInclude Include="lib\stb_image_write.h" />
     <ClInclude Include="src\Array2.h" />
     <ClInclude Include="src\Array3.h" />
     <ClInclude Include="src\Color.h" />
@@ -173,6 +168,11 @@
     <ClInclude Include="src\Coords3.h" />
     <ClInclude Include="src\Direction.h" />
     <ClInclude Include="src\Enum.h" />
+    <ClInclude Include="src\lib\pcg_extras.hpp" />
+    <ClInclude Include="src\lib\pcg_random.hpp" />
+    <ClInclude Include="src\lib\pcg_uint128.hpp" />
+    <ClInclude Include="src\lib\stb_image.h" />
+    <ClInclude Include="src\lib\stb_image_write.h" />
     <ClInclude Include="src\Logger.h" />
     <ClInclude Include="src\Model.h" />
     <ClInclude Include="src\OverlappingModel.h" />

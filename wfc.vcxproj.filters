@@ -24,12 +24,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="lib\stb_image.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="lib\stb_image_write.h">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
     <ClInclude Include="src\Array2.h">
       <Filter>Header Files\src</Filter>
     </ClInclude>
@@ -69,15 +63,6 @@
     <ClInclude Include="src\Coords3.h">
       <Filter>Header Files\src</Filter>
     </ClInclude>
-    <ClInclude Include="lib\pcg_extras.hpp">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="lib\pcg_random.hpp">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="lib\pcg_uint128.hpp">
-      <Filter>Header Files\lib</Filter>
-    </ClInclude>
     <ClInclude Include="src\Logger.h">
       <Filter>Header Files\src</Filter>
     </ClInclude>
@@ -98,6 +83,21 @@
     </ClInclude>
     <ClInclude Include="src\Model.h">
       <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\pcg_extras.hpp">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\pcg_random.hpp">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\pcg_uint128.hpp">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\stb_image.h">
+      <Filter>Header Files\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\stb_image_write.h">
+      <Filter>Header Files\lib</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -20,7 +20,7 @@ template <typename CellTypeT>
 struct Model
 {
     using CellType = CellTypeT;
-    using RandomNumberGeneratorType = pcg64_fast;
+    using RandomNumberGeneratorType = pcg32_fast;
     using PatternsEntryType = std::pair<typename Patterns<CellType>::ElementType, float>;
 
     std::optional<Array2<CellType>> next()

@@ -12,6 +12,7 @@
 #include "Direction.h"
 #include "NormalizedHistogram.h"
 #include "Logger.h"
+#include "Util.h"
 
 struct Wave
 {
@@ -31,10 +32,17 @@ private:
         float entropy;
     };
 
+    Size2i m_size;
+
+    // min { (p * log(p)) / 2 }
+    float m_noiseMax;
+
     WrappingMode m_wrapping;
 
+    bool m_hasContradiction;
+
     // p
-    const std::vector<float>* m_p;
+    const float* m_p;
 
     // p * log(p)
     std::vector<float> m_plogp;
@@ -42,9 +50,6 @@ private:
     Entry m_initEntry;
 
     Array2<Entry> m_memo;
-
-    // min { (p * log(p)) / 2 }
-    float m_noiseMax;
 
     // m_canBePlaced[x][y][elementId]
     Array3<bool> m_canBePlaced;
@@ -56,7 +61,7 @@ private:
     // m_numCompatibile[{x, y, elementId}][dir]
     // denotes the number of elements in the wave that can be placed
     // at ((x, y) + opposite(dir)) without contradiction with (x, y)
-    // if m_canBePlaced[x][y][elementId] == false then 
+    // if m_canBePlaced[x][y][elementId] == false then
     // m_numCompatibile[{x, y, elementId}][dir] <= 0 for every dir
     Array3<ByDirection<int>> m_numCompatibile;
 
@@ -77,7 +82,7 @@ private:
                 for (int elementId = 0; elementId < numElements; ++elementId)
                 {
                     const auto& compatibile = m_compatibile[elementId];
-                    
+
                     ByDirection<int> counts{};
 
                     for (Direction dir : values<Direction>())
@@ -102,20 +107,22 @@ public:
     };
 
     Wave(CompatibilityArrayType&& compatibility, Size2i size, const NormalizedFrequencies& freq, WrappingMode wrapping) :
+        m_size(size),
+        m_noiseMax(std::numeric_limits<float>::max()),
         m_wrapping(wrapping),
-        m_p(&freq.frequencies()),
+        m_hasContradiction(false),
+        m_p(freq.frequencies().data()),
         m_plogp(freq.size()),
         m_memo(size),
-        m_noiseMax(std::numeric_limits<float>::max()),
         m_canBePlaced(Size3i(size, freq.size()), true),
         m_compatibile(std::move(compatibility)),
         m_numCompatibile(initNumCompatibile())
     {
         std::transform(
-            std::begin(*m_p), 
-            std::end(*m_p),
-            std::begin(m_plogp), 
-            [](float p) { return p * std::log(p); }
+            m_p,
+            m_p + freq.size(),
+            std::begin(m_plogp),
+            [](float p) { return p * util::approximateLog(p); }
         );
 
         for (auto&& plogp : m_plogp)
@@ -151,6 +158,7 @@ public:
 
     void reset()
     {
+        m_hasContradiction = false;
         std::fill(std::begin(m_memo), std::end(m_memo), m_initEntry);
         m_numCompatibile = initNumCompatibile();
         m_canBePlaced.fill(true);
@@ -194,7 +202,7 @@ public:
 
     [[nodiscard]] Size2i size() const
     {
-        return m_memo.size();
+        return m_size;
     }
 
     [[nodiscard]] bool canBePlaced(Coords2i pos, int elementId) const
@@ -218,33 +226,43 @@ public:
 
         auto& memo = m_memo[pos];
         memo.plogpSum -= m_plogp[elementId];
-        memo.pSum -= (*m_p)[elementId];
+        memo.pSum -= m_p[elementId];
         memo.numAvailableElements -= 1;
-        memo.entropy = std::log(memo.pSum) - memo.plogpSum / memo.pSum;
+        if (memo.numAvailableElements == 0)
+        {
+            m_hasContradiction = true;
+        }
+        memo.entropy = util::approximateLog(memo.pSum) - memo.plogpSum / memo.pSum;
     }
 
     template <typename RngT>
-    __declspec(noinline) [[nodiscard]] std::pair<MinimalEntropyQueryResult, Coords2i> posWithMinimalEntropy(RngT&& rng) const
+    [[nodiscard]] std::pair<MinimalEntropyQueryResult, Coords2i> posWithMinimalEntropy(RngT&& rng) const
     {
-        constexpr int invalidArg = -1;
+        static_assert(std::decay_t<RngT>::min() == 0);
+        constexpr float rngMax = static_cast<float>(std::decay_t<RngT>::max());
 
-        std::uniform_real_distribution<float> dNoise(0.0f, m_noiseMax);
+        auto dNoise = [scale = m_noiseMax * (1.0f / rngMax), &rng]() {
+            return rng() * scale;
+        };
+
+        if (m_hasContradiction)
+        {
+            // there's cannot be an unassignable element
+            return { MinimalEntropyQueryResult::Contradiction, {} };
+        }
+
+        constexpr int invalidArg = -1;
 
         float minEntropy = std::numeric_limits<float>::max();
         int minArg = invalidArg;
 
-        auto [width, height] = size();
-
-        for (int i = 0; i < width * height; ++i)
+        const int s = size().total();
+        const auto* memos = m_memo.data();
+        for (int i = 0; i < s; ++i)
         {
-            const auto& memo = m_memo.data()[i];
-            const int numAvailable = memo.numAvailableElements;
-            if (numAvailable == 0)
-            {
-                // there's cannot be an unassignable element
-                return { MinimalEntropyQueryResult::Contradiction, {} };
-            }
-            else if (numAvailable == 1)
+            const auto& memo = memos[i];
+
+            if (memo.numAvailableElements == 1)
             {
                 // already settled
                 continue;
@@ -257,7 +275,7 @@ public:
                 // TODO: if we can move this rng call somewhere else then this
                 // loop can be parallelised and preserve determinism
                 // maybe update noise in `makeUnplacable`?
-                const float noise = dNoise(rng);
+                const float noise = dNoise();
                 if (entropy + noise < minEntropy)
                 {
                     minEntropy = entropy + noise;
@@ -292,7 +310,7 @@ public:
 
 private:
     template <WrappingMode WrapV>
-    __declspec(noinline) void propagateImpl()
+    void propagateImpl()
     {
         while (!m_propagationQueue.empty())
         {
