@@ -78,6 +78,16 @@ struct Array3
         return m_values.get() + m_size.total();
     }
 
+    [[nodiscard]] T* operator()(int x, int y)
+    {
+        return m_values.get() + ((x * m_size.height + y) * m_size.depth);
+    }
+
+    [[nodiscard]] const T* operator()(int x, int y) const
+    {
+        return m_values.get() + ((x * m_size.height + y) * m_size.depth);
+    }
+
     [[nodiscard]] T& operator()(int x, int y, int z)
     {
         return m_values[(x * m_size.height + y) * m_size.depth + z];
@@ -88,6 +98,16 @@ struct Array3
         return m_values[(x * m_size.height + y) * m_size.depth + z];
     }
 
+    [[nodiscard]] T* operator[](Coords2i coords)
+    {
+        return (*this)(coords.x, coords.y);
+    }
+
+    [[nodiscard]] const T* operator[](Coords2i coords) const
+    {
+        return (*this)(coords.x, coords.y);
+    }
+
     [[nodiscard]] T& operator[](Coords3i coords)
     {
         return (*this)(coords.x, coords.y, coords.z);
@@ -96,6 +116,21 @@ struct Array3
     [[nodiscard]] const T& operator[](Coords3i coords) const
     {
         return (*this)(coords.x, coords.y, coords.z);
+    }
+
+    [[nodiscard]] int getFlatIndex(Coords3i coords) const
+    {
+        return (coords.x * m_size.height + coords.y) * m_size.depth + coords.z;
+    }
+
+    [[nodiscard]] const T* data() const
+    {
+        return m_values.get();
+    }
+
+    [[nodiscard]] T* data()
+    {
+        return m_values.get();
     }
 
     [[nodiscard]] Size3i size() const

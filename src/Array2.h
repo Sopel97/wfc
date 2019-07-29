@@ -449,6 +449,21 @@ struct Array2
         return (*this)[c.x][c.y];
     }
 
+    [[nodiscard]] int getFlatIndex(Coords2i c) const
+    {
+        return c.x * m_size.height + c.y;
+    }
+
+    [[nodiscard]] const T* data() const
+    {
+        return m_values.get();
+    }
+
+    [[nodiscard]] T* data()
+    {
+        return m_values.get();
+    }
+
     [[nodiscard]] Size2i size() const
     {
         return m_size;

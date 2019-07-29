@@ -205,14 +205,17 @@ public:
     // returns number of patterns left
     int makeUnplacable(Coords2i pos, int elementId)
     {
-        if (!canBePlaced(pos, elementId))
+        const int idx = m_canBePlaced.getFlatIndex({ pos, elementId });
+        auto& canBePlaced = m_canBePlaced.data()[idx];
+        if (!canBePlaced)
         {
             return m_memo[pos].numAvailableElements;
         }
 
-        schedulePropagationOnElementMadeUnavailable(pos, elementId);
+        canBePlaced = false;
 
-        m_canBePlaced[{pos, elementId}] = false;
+        m_numCompatibile.data()[idx] = {};
+        m_propagationQueue.emplace_back(pos, elementId);
 
         auto& memo = m_memo[pos];
         memo.plogpSum -= m_plogp[elementId];
@@ -235,13 +238,13 @@ public:
 
         auto [width, height] = size();
 
+        int idx = 0;
         for (int x = 0; x < width; ++x)
         {
             for (int y = 0; y < height; ++y)
             {
-                const Coords2i pos(x, y);
-
-                const int numAvailable = m_memo[pos].numAvailableElements;
+                const auto& memo = m_memo.data()[idx++];
+                const int numAvailable = memo.numAvailableElements;
                 if (numAvailable == 0)
                 {
                     // there's cannot be an unassignable element
@@ -254,14 +257,14 @@ public:
                 }
 
                 // still in superposition
-                const float entropy = m_memo[pos].entropy;
+                const float entropy = memo.entropy;
                 if (entropy < minEntropy)
                 {
                     const float noise = dNoise(rng);
                     if (entropy + noise < minEntropy)
                     {
                         minEntropy = entropy + noise;
-                        minArg = pos;
+                        minArg = { x, y };
                     }
                 }
             }
@@ -274,13 +277,6 @@ public:
         }
 
         return { MinimalEntropyQueryResult::Success, minArg };
-    }
-
-    void schedulePropagationOnElementMadeUnavailable(Coords2i pos, int elementId)
-    {
-        const Coords3i c(pos, elementId);
-        m_numCompatibile[c] = {};
-        m_propagationQueue.emplace_back(c);
     }
 
     void propagate()
@@ -317,15 +313,16 @@ public:
                 }
 
                 const auto& compatibileElements = m_compatibile[elementId][dir];
+                auto* numCompatibile = m_numCompatibile[{ x2, y2 }];
                 for (const int compatibileElementId : compatibileElements)
                 {
                     // decrease the number of compatibile elements
                     // and handle the case when we end up with none compatibile left
 
-                    auto& counts = m_numCompatibile[{ x2, y2, compatibileElementId }];
-                    counts[dir] -= 1;
+                    auto& count = numCompatibile[compatibileElementId][dir];
+                    count -= 1;
 
-                    if (counts[dir] == 0) 
+                    if (count == 0) 
                     {
                         makeUnplacable({ x2, y2 }, compatibileElementId);
                     }

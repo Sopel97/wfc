@@ -97,7 +97,7 @@ int main()
 {
     {
         TiledModelOptions opt;
-        opt.outputSize = { 64, 64 };
+        opt.outputSize = { 96, 96 };
         opt.outputWrapping = WrappingMode::All;
         TiledModel<ColorRGBi> m(makeKnotTileSet(), opt);
 
@@ -122,7 +122,7 @@ int main()
         opt.outputWrapping = WrappingMode::All;
         opt.patternSize = 3;
         opt.stride = { 1, 1 };
-        opt.setOutputSizeAtLeast({ 32, 32 });
+        opt.setOutputSizeAtLeast({ 96, 96 });
         if (!opt.isValid())
         {
             std::cout << "Invalid config\n";

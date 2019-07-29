@@ -35,5 +35,5 @@ private:
 
 inline Logger g_logger;
 
-#define LOG(logger, ...) if (logger .enabled) logger .log(__VA_ARGS__);
+#define LOG(logger, ...) if constexpr (logger .enabled) logger .log(__VA_ARGS__);
 
