@@ -75,25 +75,18 @@ private:
 
         Array3<ByDirection<int>> res({ width, height, numElements });
 
-        for (int x = 0; x < width; ++x)
-        {
-            for (int y = 0; y < height; ++y)
+        forEach(res, [&](ByDirection<int>& r, int x, int y, int elementId) {
+            const auto& compatibile = m_compatibile[elementId];
+
+            ByDirection<int> counts{};
+
+            for (Direction dir : values<Direction>())
             {
-                for (int elementId = 0; elementId < numElements; ++elementId)
-                {
-                    const auto& compatibile = m_compatibile[elementId];
-
-                    ByDirection<int> counts{};
-
-                    for (Direction dir : values<Direction>())
-                    {
-                        counts[dir] = static_cast<int>(compatibile[oppositeTo(dir)].size());
-                    }
-
-                    res[{x, y, elementId}] = counts;
-                }
+                counts[dir] = static_cast<int>(compatibile[oppositeTo(dir)].size());
             }
-        }
+
+            r = counts;
+        });
 
         return res;
     }
@@ -207,9 +200,22 @@ public:
         return m_size;
     }
 
+    [[nodiscard]] int numElements() const
+    {
+        return m_plogp.size();
+    }
+
     [[nodiscard]] bool canBePlaced(Coords2i pos, int elementId) const
     {
         return m_canBePlaced[{pos, elementId}];
+    }
+
+    void setElement(Coords2i pos, int elementId)
+    {
+        // define the cell with the chosen pattern by disabling others
+        makeUnplacableAllExcept(pos, elementId);
+
+        propagate();
     }
 
     void makeUnplacable(Coords2i pos, int elementId)
@@ -235,6 +241,38 @@ public:
             m_hasContradiction = true;
         }
         memo.entropy = util::approximateLog(memo.pSum) - memo.plogpSum / memo.pSum;
+    }
+
+    void makeUnplacableAllExcept(Coords2i pos, int preservedElementId)
+    {
+        const int end = numElements();
+
+        for (int elementId = 0; elementId < end; ++elementId)
+        {
+            if (elementId == preservedElementId)
+            {
+                continue;
+            }
+
+            const int idx = m_canBePlaced.getFlatIndex({ pos, elementId });
+            auto& canBePlaced = m_canBePlaced.data()[idx];
+            if (canBePlaced)
+            {
+                m_numCompatibile.data()[idx] = {};
+                m_propagationQueue.emplace_back(pos, elementId);
+                canBePlaced = false;
+            }
+        }
+
+        auto& memo = m_memo[pos];
+        memo.plogpSum = m_plogp[preservedElementId];
+        memo.pSum = m_p[preservedElementId];
+        memo.numAvailableElements = m_canBePlaced[{pos, preservedElementId}];
+        if (memo.numAvailableElements == 0)
+        {
+            m_hasContradiction = true;
+        }
+        // we don't need to change entropy since the values doesn't matter anymore anyway
     }
 
     template <typename RngT>
@@ -351,7 +389,20 @@ private:
             x2 += dx;
             if constexpr (hWrap)
             {
-                x2 = (x2 + waveSize.width) % waveSize.width;
+                if constexpr (dx < 0)
+                {
+                    if (x2 < 0)
+                    {
+                        x2 = waveSize.width - 1;
+                    }
+                }
+                else
+                {
+                    if (x2 >= waveSize.width)
+                    {
+                        x2 = 0;
+                    }
+                }
             }
             else if constexpr (dx < 0)
             {
@@ -371,7 +422,20 @@ private:
             y2 += dy;
             if constexpr (vWrap)
             {
-                y2 = (y2 + waveSize.height) % waveSize.height;
+                if constexpr (dy < 0)
+                {
+                    if (y2 < 0)
+                    {
+                        y2 = waveSize.height - 1;
+                    }
+                }
+                else
+                {
+                    if (y2 >= waveSize.height)
+                    {
+                        y2 = 0;
+                    }
+                }
             }
             else if constexpr (dy < 0)
             {

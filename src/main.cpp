@@ -98,16 +98,25 @@ TileSet<ColorRGBi> makeKnotTileSet()
     return ts;
 }
 
+double elapsedSeconds(std::chrono::high_resolution_clock::time_point a, std::chrono::high_resolution_clock::time_point b)
+{
+    return (b - a).count() * 1e-9;
+}
+
 int main()
 {
     {
         TiledModelOptions opt;
         opt.outputSize = { 128, 128 };
         opt.outputWrapping = WrappingMode::All;
+
+        auto t0 = std::chrono::high_resolution_clock::now();
         TiledModel<ColorRGBi> m(makeKnotTileSet(), opt);
+        auto t1 = std::chrono::high_resolution_clock::now();
 
         auto v = m.next();
         v = m.next();
+        auto t2 = std::chrono::high_resolution_clock::now();
         if (v.has_value())
         {
             saveImage(v.value(), "sample_out/knot.png");
@@ -116,6 +125,9 @@ int main()
         {
             LOG_ERROR(g_logger, "Contradiction\n");
         }
+
+        LOG_INFO(g_logger, "Init time: ", elapsedSeconds(t0, t1));
+        LOG_INFO(g_logger, " Gen time: ", elapsedSeconds(t1, t2)/2.0f);
     }
 
     {
@@ -132,9 +144,13 @@ int main()
             std::cout << "Invalid config\n";
             return 1;
         }
+        auto t0 = std::chrono::high_resolution_clock::now();
         OverlappingModel<ColorRGBi> m(img, opt);
+        auto t1 = std::chrono::high_resolution_clock::now();
+
         auto v = m.next();
         v = m.next();
+        auto t2 = std::chrono::high_resolution_clock::now();
         if (v.has_value())
         {
             saveImage(v.value(), "sample_out/flowers.png");
@@ -143,6 +159,9 @@ int main()
         {
             LOG_ERROR(g_logger, "Contradiction\n");
         }
+
+        LOG_INFO(g_logger, "Init time: ", elapsedSeconds(t0, t1));
+        LOG_INFO(g_logger, " Gen time: ", elapsedSeconds(t1, t2) / 2.0f);
     }
 
     return 0;

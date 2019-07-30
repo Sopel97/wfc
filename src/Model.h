@@ -4,6 +4,8 @@
 #include <map>
 #include <vector>
 #include <utility>
+#include <iterator>
+#include <algorithm>
 
 #include "lib/pcg_random.hpp"
 
@@ -25,10 +27,18 @@ struct Model
 
     std::optional<Array2<CellType>> next()
     {
-        m_wave.reset();
+        std::vector<float> ps; // preallocate for observeOnce
+        ps.resize(m_patterns.size());
+
+        if (!m_firstRun)
+        {
+            m_wave.reset();
+        }
+        m_firstRun = false;
+
         for (;;)
         {
-            switch (observeOnce())
+            switch (observeOnce(ps))
             {
             case ObservationResult::Contradiction:
                 return std::nullopt;
@@ -44,7 +54,8 @@ protected:
     Model(RandomNumberGeneratorType&& rng, Patterns<CellType>&& patterns, Wave::CompatibilityArrayType&& compatibility, Size2i waveSize, WrappingMode waveWrapping) :
         m_rng(std::move(rng)),
         m_patterns(std::move(patterns)),
-        m_wave(std::move(compatibility), waveSize, m_patterns, waveWrapping)
+        m_wave(std::move(compatibility), waveSize, m_patterns, waveWrapping),
+        m_firstRun(true)
     {
     }
 
@@ -57,7 +68,23 @@ protected:
         Unfinished
     };
 
-    [[nodiscard]] ObservationResult observeOnce() noexcept
+    const Wave& wave() const
+    {
+        return m_wave;
+    }
+
+    const Patterns<CellType>& patterns() const
+    {
+        return m_patterns;
+    }
+
+private:
+    RandomNumberGeneratorType m_rng;
+    Patterns<CellType> m_patterns;
+    Wave m_wave;
+    bool m_firstRun;
+
+    [[nodiscard]] ObservationResult observeOnce(std::vector<float>& ps) noexcept
     {
         const auto [status, pos] = m_wave.posWithMinimalEntropy(m_rng);
 
@@ -76,46 +103,22 @@ protected:
         const int numPatterns = m_patterns.size();
 
         // choose an element according to the pattern distribution
-        std::vector<float> ps;
-        ps.reserve(numPatterns);
+        float pssum = 0.0f;
         {
             for (int i = 0; i < numPatterns; ++i)
             {
-                ps.emplace_back(m_wave.canBePlaced(pos, i) ? m_patterns.frequency(i) : 0.0f);
+                pssum += m_wave.canBePlaced(pos, i) ? m_patterns.frequency(i) : 0.0f;
+                ps[i] = pssum;
             }
         }
 
-        std::discrete_distribution<int> dPatternId(std::begin(ps), std::end(ps));
-        const int patternId = dPatternId(m_rng);
+        std::uniform_real_distribution<float> dPssum(0.0f, pssum);
+        const float r = std::min(dPssum(m_rng), pssum); // min just in case of unfortunate rounding
+        const auto iter = std::lower_bound(std::begin(ps), std::end(ps), r);
+        const int patternId = static_cast<int>(std::distance(std::begin(ps), iter));
 
-        // define the cell with the chosen pattern by disabling others
-        for (int i = 0; i < numPatterns; ++i)
-        {
-            if (i == patternId)
-            {
-                continue;
-            }
-
-            m_wave.makeUnplacable(pos, i);
-        }
-
-        m_wave.propagate();
+        m_wave.setElement(pos, patternId);
 
         return ObservationResult::Unfinished;
     }
-
-    const Wave& wave() const
-    {
-        return m_wave;
-    }
-
-    const Patterns<CellType>& patterns() const
-    {
-        return m_patterns;
-    }
-
-private:
-    RandomNumberGeneratorType m_rng;
-    Patterns<CellType> m_patterns;
-    Wave m_wave;
 };
