@@ -47,7 +47,7 @@ struct TiledModel : Model<CellTypeT>
     using BaseType = Model<CellType>;
 
     TiledModel(const TileSetType& tiles, const TiledModelOptions& options) : 
-        BaseType({options.seed}, flattenPatterns(tiles), computeCompatibilities(tiles), options.waveSize(), options.outputWrapping),
+        BaseType(flattenPatterns(tiles), computeCompatibilities(tiles), options.seed, options.waveSize(), options.outputWrapping),
         m_options(options)
     {
         LOG_INFO(g_logger, "Created tiled model");

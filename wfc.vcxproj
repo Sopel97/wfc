@@ -161,6 +161,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Algorithm.h" />
     <ClInclude Include="src\Array2.h" />
     <ClInclude Include="src\Array3.h" />
     <ClInclude Include="src\Color.h" />

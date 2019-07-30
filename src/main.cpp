@@ -107,7 +107,7 @@ int main()
 {
     {
         TiledModelOptions opt;
-        opt.outputSize = { 128, 128 };
+        opt.outputSize = { 256, 256 };
         opt.outputWrapping = WrappingMode::All;
 
         auto t0 = std::chrono::high_resolution_clock::now();
@@ -138,7 +138,7 @@ int main()
         opt.outputWrapping = WrappingMode::All;
         opt.patternSize = 3;
         opt.stride = { 1, 1 };
-        opt.setOutputSizeAtLeast({ 128, 128 });
+        opt.setOutputSizeAtLeast({ 256, 256 });
         if (!opt.isValid())
         {
             std::cout << "Invalid config\n";

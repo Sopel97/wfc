@@ -104,7 +104,7 @@ struct OverlappingModel : Model<CellTypeT>
 
     OverlappingModel(const Array2<CellType>& input, const OverlappingModelOptions& options) :
         // let's hope the compiler will call gatherPatterns only once
-        BaseType({options.seed}, gatherPatterns(input, options), computeCompatibilities(input, options), options.waveSize(), options.outputWrapping),
+        BaseType(gatherPatterns(input, options), computeCompatibilities(input, options), options.seed, options.waveSize(), options.outputWrapping),
         m_options(options)
     {
         LOG_INFO(g_logger, "Created overlapping model");

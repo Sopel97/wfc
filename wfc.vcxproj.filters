@@ -99,6 +99,9 @@
     <ClInclude Include="src\lib\stb_image_write.h">
       <Filter>Header Files\lib</Filter>
     </ClInclude>
+    <ClInclude Include="src\Algorithm.h">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">

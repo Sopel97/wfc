@@ -6,7 +6,11 @@
 #include <optional>
 #include <queue>
 #include <random>
+#include <execution>
 
+#include "lib/pcg_random.hpp"
+
+#include "Algorithm.h"
 #include "Array2.h"
 #include "Array3.h"
 #include "Direction.h"
@@ -17,6 +21,7 @@
 struct Wave
 {
     using CompatibilityArrayType = std::vector<ByDirection<std::vector<int>>>;
+    using RandomNumberGeneratorType = pcg32_fast;
 
 private:
     struct Entry
@@ -31,6 +36,11 @@ private:
 
         float entropy;
     };
+
+    static_assert(std::decay_t<RandomNumberGeneratorType>::min() == 0);
+    static constexpr float rngMax = static_cast<float>(std::decay_t<RandomNumberGeneratorType>::max());
+
+    RandomNumberGeneratorType m_rng;
 
     Size2i m_size;
 
@@ -91,6 +101,14 @@ private:
         return res;
     }
 
+    auto randomNoiseGenerator(float max)
+    {
+        auto dNoise = [scale = max * (1.0f / rngMax), this]() {
+            return m_rng() * scale;
+        };
+        return dNoise;
+    }
+
 public:
     enum struct MinimalEntropyQueryResult
     {
@@ -99,7 +117,15 @@ public:
         Finished
     };
 
-    Wave(CompatibilityArrayType&& compatibility, Size2i size, const NormalizedFrequencies& freq, WrappingMode wrapping) :
+    enum struct ObservationResult
+    {
+        Contradiction,
+        Finished,
+        Unfinished
+    };
+
+    Wave(CompatibilityArrayType&& compatibility, std::uint64_t seed, Size2i size, const NormalizedFrequencies& freq, WrappingMode wrapping) :
+        m_rng(seed),
         m_size(size),
         m_noiseMax(std::numeric_limits<float>::max()),
         m_wrapping(wrapping),
@@ -134,6 +160,11 @@ public:
         }
 
         m_initEntry = Entry{ baseEntropy, 1.0f, static_cast<int>(freq.size()), -baseEntropy };
+        auto dNoise = randomNoiseGenerator(m_noiseMax);
+        for (auto& e : m_memo)
+        {
+            e.entropy += dNoise();
+        }
 
         std::fill(std::begin(m_memo), std::end(m_memo), m_initEntry);
 
@@ -195,6 +226,44 @@ public:
         return ids;
     }
 
+    [[nodiscard]] ObservationResult observeOnce(std::vector<float>& ps) noexcept
+    {
+        const auto [status, pos] = posWithMinimalEntropy();
+
+        if (status == Wave::MinimalEntropyQueryResult::Contradiction)
+        {
+            return ObservationResult::Contradiction;
+        }
+
+        if (status == Wave::MinimalEntropyQueryResult::Finished)
+        {
+            return ObservationResult::Finished;
+        }
+
+        LOG_DEBUG(g_logger, "Observed (", pos.x, ", ", pos.y, ")");
+
+        const int numPatterns = numElements();
+
+        // choose an element according to the pattern distribution
+        float pssum = 0.0f;
+        {
+            for (int i = 0; i < numPatterns; ++i)
+            {
+                pssum += canBePlaced(pos, i) ? m_p[i] : 0.0f;
+                ps[i] = pssum;
+            }
+        }
+
+        std::uniform_real_distribution<float> dPssum(0.0f, pssum);
+        const float r = std::min(dPssum(m_rng), pssum); // min just in case of unfortunate rounding
+        const auto iter = std::lower_bound(std::begin(ps), std::end(ps), r);
+        const int patternId = static_cast<int>(std::distance(std::begin(ps), iter));
+
+        setElement(pos, patternId);
+
+        return ObservationResult::Unfinished;
+    }
+
     [[nodiscard]] Size2i size() const
     {
         return m_size;
@@ -202,7 +271,7 @@ public:
 
     [[nodiscard]] int numElements() const
     {
-        return m_plogp.size();
+        return static_cast<int>(m_plogp.size());
     }
 
     [[nodiscard]] bool canBePlaced(Coords2i pos, int elementId) const
@@ -218,6 +287,51 @@ public:
         propagate();
     }
 
+    [[nodiscard]] std::pair<MinimalEntropyQueryResult, Coords2i> posWithMinimalEntropy()
+    {
+        if (m_hasContradiction)
+        {
+            // there's cannot be an unassignable element
+            return { MinimalEntropyQueryResult::Contradiction, {} };
+        }
+
+        const int s = size().total();
+        const auto* memos = m_memo.data();
+
+        auto it = filterMinElement(
+            std::execution::par_unseq,
+            std::begin(m_memo),
+            std::end(m_memo),
+            Entry{ 0.0f, 0.0f, 0, std::numeric_limits<float>::max() },
+            [](const auto& e) { return e.numAvailableElements > 1; },
+            [](const auto& lhs, const auto& rhs) { return lhs.entropy < rhs.entropy; }
+        );
+
+        // all settled
+        if (it == m_memo.end())
+        {
+            return { MinimalEntropyQueryResult::Finished, {} };
+        }
+
+        return { MinimalEntropyQueryResult::Success, m_memo.coordsFromFlatIndex(static_cast<int>(std::distance(std::begin(m_memo), it))) };
+    }
+
+    void propagate()
+    {
+        switch (m_wrapping)
+        {
+        case WrappingMode::None:
+            propagateImpl<WrappingMode::None>();
+        case WrappingMode::Horizontal:
+            propagateImpl<WrappingMode::Horizontal>();
+        case WrappingMode::Vertical:
+            propagateImpl<WrappingMode::Vertical>();
+        case WrappingMode::All:
+            propagateImpl<WrappingMode::All>();
+        }
+    }
+
+private:
     void makeUnplacable(Coords2i pos, int elementId)
     {
         const int idx = m_canBePlaced.getFlatIndex({ pos, elementId });
@@ -240,7 +354,8 @@ public:
         {
             m_hasContradiction = true;
         }
-        memo.entropy = util::approximateLog(memo.pSum) - memo.plogpSum / memo.pSum;
+
+        memo.entropy = util::approximateLog(memo.pSum) - memo.plogpSum / memo.pSum + randomNoiseGenerator(m_noiseMax)();
     }
 
     void makeUnplacableAllExcept(Coords2i pos, int preservedElementId)
@@ -275,87 +390,6 @@ public:
         // we don't need to change entropy since the values doesn't matter anymore anyway
     }
 
-    template <typename RngT>
-    [[nodiscard]] std::pair<MinimalEntropyQueryResult, Coords2i> posWithMinimalEntropy(RngT&& rng) const
-    {
-        static_assert(std::decay_t<RngT>::min() == 0);
-        constexpr float rngMax = static_cast<float>(std::decay_t<RngT>::max());
-
-        auto dNoise = [scale = m_noiseMax * (1.0f / rngMax), &rng]() {
-            return rng() * scale;
-        };
-
-        if (m_hasContradiction)
-        {
-            // there's cannot be an unassignable element
-            return { MinimalEntropyQueryResult::Contradiction, {} };
-        }
-
-        constexpr int invalidArg = -1;
-
-        float minEntropy = std::numeric_limits<float>::max();
-        int minArg = invalidArg;
-
-        const int s = size().total();
-        const auto* memos = m_memo.data();
-
-        auto updateMin = [&](int i) {
-            const auto& memo = memos[i];
-            const float entropy = memo.entropy;
-            if (memo.numAvailableElements > 1 && entropy < minEntropy)
-            {
-                const float noise = dNoise();
-                if (entropy + noise < minEntropy)
-                {
-                    minEntropy = entropy + noise;
-                    minArg = i;
-                }
-            }
-        };
-
-        // manual unrolling as the loop is very tight.
-        // gives small performance improvement.
-        // TODO: if we can move this rng call somewhere else then this
-        // loop can be parallelised and preserve determinism
-        // maybe update noise in `makeUnplacable`?
-        int i = 0;
-        for (; i + 4 < s; i += 4)
-        {
-            updateMin(i);
-            updateMin(i+1);
-            updateMin(i+2);
-            updateMin(i+3);
-        }
-        for (; i < s; ++i)
-        {
-            updateMin(i);
-        }
-
-        // all settled
-        if (minArg == invalidArg)
-        {
-            return { MinimalEntropyQueryResult::Finished, {} };
-        }
-
-        return { MinimalEntropyQueryResult::Success, m_memo.coordsFromFlatIndex(minArg) };
-    }
-
-    void propagate()
-    {
-        switch (m_wrapping)
-        {
-        case WrappingMode::None:
-            propagateImpl<WrappingMode::None>();
-        case WrappingMode::Horizontal:
-            propagateImpl<WrappingMode::Horizontal>();
-        case WrappingMode::Vertical:
-            propagateImpl<WrappingMode::Vertical>();
-        case WrappingMode::All:
-            propagateImpl<WrappingMode::All>();
-        }
-    }
-
-private:
     template <WrappingMode WrapV>
     void propagateImpl()
     {
