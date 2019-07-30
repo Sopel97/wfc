@@ -483,11 +483,12 @@ template <typename T, typename Func>
 void forEach(Array2<T>& a, Func&& func)
 {
     const auto [width, height] = a.size();
+    auto* data = a.data();
     for (int x = 0; x < width; ++x)
     {
         for (int y = 0; y < height; ++y)
         {
-            func(a[x][y], x, y);
+            func(data[x * height + y], x, y);
         }
     }
 }
@@ -496,11 +497,12 @@ template <typename T, typename Func>
 void forEach(const Array2<T>& a, Func&& func)
 {
     const auto [width, height] = a.size();
+    const auto* data = a.data();
     for (int x = 0; x < width; ++x)
     {
         for (int y = 0; y < height; ++y)
         {
-            func(a[x][y], x, y);
+            func(data[x * height + y], x, y);
         }
     }
 }

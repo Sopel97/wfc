@@ -260,23 +260,12 @@ public:
 
         const int s = size().total();
         const auto* memos = m_memo.data();
-        for (int i = 0; i < s; ++i)
-        {
+
+        auto updateMin = [&](int i) {
             const auto& memo = memos[i];
-
-            if (memo.numAvailableElements == 1)
-            {
-                // already settled
-                continue;
-            }
-
-            // still in superposition
             const float entropy = memo.entropy;
-            if (entropy < minEntropy)
+            if (memo.numAvailableElements > 1 && entropy < minEntropy)
             {
-                // TODO: if we can move this rng call somewhere else then this
-                // loop can be parallelised and preserve determinism
-                // maybe update noise in `makeUnplacable`?
                 const float noise = dNoise();
                 if (entropy + noise < minEntropy)
                 {
@@ -284,6 +273,24 @@ public:
                     minArg = i;
                 }
             }
+        };
+
+        // manual unrolling as the loop is very tight.
+        // gives small performance improvement.
+        // TODO: if we can move this rng call somewhere else then this
+        // loop can be parallelised and preserve determinism
+        // maybe update noise in `makeUnplacable`?
+        int i = 0;
+        for (; i + 4 < s; i += 4)
+        {
+            updateMin(i);
+            updateMin(i+1);
+            updateMin(i+2);
+            updateMin(i+3);
+        }
+        for (; i < s; ++i)
+        {
+            updateMin(i);
         }
 
         // all settled
