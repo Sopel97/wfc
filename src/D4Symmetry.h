@@ -507,6 +507,16 @@ constexpr D4SymmetriesClosure& operator^=(D4SymmetriesClosure& lhs, D4Symmetries
     return (ss | s1) == (ss | s2);
 }
 
+[[nodiscard]] static constexpr bool isRotation(D4Symmetry s)
+{
+    return toId(s) <= toId(D4Symmetry::Rotation270);
+}
+
+[[nodiscard]] static constexpr bool isMirroring(D4Symmetry s)
+{
+    return !isRotation(s);
+}
+
 struct D4SymmetryHelper
 {
     [[nodiscard]] static constexpr D4SymmetriesClosure closureFromChar(char c) noexcept

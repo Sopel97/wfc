@@ -188,6 +188,11 @@ public:
         std::fill(std::begin(m_memo), std::end(m_memo), m_initEntry);
         m_numCompatibile = initNumCompatibile();
         m_canBePlaced.fill(true);
+        auto dNoise = randomNoiseGenerator(m_noiseMax);
+        for (auto& e : m_memo)
+        {
+            e.entropy += dNoise();
+        }
     }
 
     // should only be called after whole wave is defined

@@ -89,11 +89,40 @@ TileSet<ColorRGBi> makeKnotTileSet()
     constexpr int e = 0;
     constexpr int p = 1;
 
-    const int corner = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/knot/corner.png").square(), ByDirection<int>::nesw(p, p, e, e), D4SymmetryHelper::closureFromChar('L'), 1.0f));
-    const int cross = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/knot/cross.png").square(), ByDirection<int>::nesw(p, p, p, p), D4SymmetryHelper::closureFromChar('I'), 1.0f));
-    const int empty = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/knot/empty.png").square(), ByDirection<int>::nesw(e, e, e, e), D4SymmetryHelper::closureFromChar('X'), 1.0f));
-    const int line = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/knot/line.png").square(), ByDirection<int>::nesw(e, p, e, p), D4SymmetryHelper::closureFromChar('I'), 1.0f));
-    const int t = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/knot/t.png").square(), ByDirection<int>::nesw(e, p, p, p), D4SymmetryHelper::closureFromChar('T'), 1.0f));
+    const int corner = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/knot/corner.png").square(), { ByDirection<int>::nesw(p, p, e, e) }, D4SymmetryHelper::closureFromChar('L'), 1.0f));
+    const int cross = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/knot/cross.png").square(), { ByDirection<int>::nesw(p, p, p, p) }, D4SymmetryHelper::closureFromChar('I'), 1.0f));
+    const int empty = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/knot/empty.png").square(), { ByDirection<int>::nesw(e, e, e, e) }, D4SymmetryHelper::closureFromChar('X'), 1.0f));
+    const int line = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/knot/line.png").square(), { ByDirection<int>::nesw(e, p, e, p) }, D4SymmetryHelper::closureFromChar('I'), 1.0f));
+    const int t = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/knot/t.png").square(), {ByDirection<int>::nesw(e, p, p, p) }, D4SymmetryHelper::closureFromChar('T'), 1.0f));
+
+    return ts;
+}
+
+TileSet<ColorRGBi> makeCircuitTileSet()
+{
+    TileSet<ColorRGBi> ts;
+
+    const int sub = 0;
+    const int wir = 1;
+    const int via = 2;
+    const int tra = 3;
+    const int co0 = 5;
+    const int co1 = 6;
+    const int com = 7;
+
+    const int wire = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/circuit/wire.png").square(), { ByDirection<int>::nesw(sub, wir, sub, wir) }, D4SymmetryHelper::closureFromChar('I'), 0.5f));
+    const int vias = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/circuit/vias.png").square(), { ByDirection<int>::nesw(via, sub, sub, sub), false }, D4SymmetryHelper::closureFromChar('T'), 0.3f));
+    const int viad = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/circuit/viad.png").square(), { ByDirection<int>::nesw(sub, via, sub, via), false }, D4SymmetryHelper::closureFromChar('I'), 0.1f));
+    const int transition = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/circuit/transition.png").square(), { ByDirection<int>::nesw(wir, sub, tra, sub) }, D4SymmetryHelper::closureFromChar('T'), 0.4f));
+    const int track = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/circuit/track.png").square(), { ByDirection<int>::nesw(tra, sub, tra, sub) }, D4SymmetryHelper::closureFromChar('I'), 2.0f));
+    const int t = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/circuit/t.png").square(), { ByDirection<int>::nesw(sub, tra, tra, tra) }, D4SymmetryHelper::closureFromChar('T'), 0.1f));
+    const int substrate = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/circuit/substrate.png").square(), { ByDirection<int>::nesw(sub, sub, sub, sub) }, D4SymmetryHelper::closureFromChar('X'), 2.0f));
+    const int skew = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/circuit/skew.png").square(), { ByDirection<int>::nesw(tra, tra, sub, sub) }, D4SymmetryHelper::closureFromChar('L'), 2.0f));
+    const int dskew = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/circuit/dskew.png").square(), { ByDirection<int>::nesw(tra, tra, tra, tra) }, D4SymmetryHelper::closureFromChar('%'), 2.0f));
+    const int corner = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/circuit/corner.png").square(), { ByDirection<int>::nesw(sub, sub, co0, co1), ByDirection<int>::nesw(sub, sub, co1, co0), false }, D4SymmetryHelper::closureFromChar('L'), 10.0f));
+    const int connection = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/circuit/connection.png").square(), { ByDirection<int>::nesw(tra, co0, com, co1), ByDirection<int>::nesw(tra, co1, com, co0) }, D4SymmetryHelper::closureFromChar('T'), 10.0f));
+    const int component = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/circuit/component.png").square(), { ByDirection<int>::nesw(com, com, com, com) }, D4SymmetryHelper::closureFromChar('X'), 20.0f));
+    const int bridge = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/circuit/bridge.png").square(), { ByDirection<int>::nesw(tra, wir, tra, wir) }, D4SymmetryHelper::closureFromChar('I'), 1.0f));
 
     return ts;
 }
@@ -107,7 +136,36 @@ int main()
 {
     {
         TiledModelOptions opt;
-        opt.outputSize = { 256, 256 };
+        opt.outputSize = { 128, 128 };
+        opt.outputWrapping = WrappingMode::All;
+
+        auto t0 = std::chrono::high_resolution_clock::now();
+        TiledModel<ColorRGBi> m(makeCircuitTileSet(), opt);
+        auto t1 = std::chrono::high_resolution_clock::now();
+
+        for (int i = 0; i < 16; ++i)
+        {
+            auto v = m.next();
+            if (v.has_value())
+            {
+                saveImage(v.value(), std::string("sample_out/circuit/") + std::to_string(i) + ".png");
+            }
+            else
+            {
+                LOG_ERROR(g_logger, "Contradiction\n");
+            }
+        }
+        auto t2 = std::chrono::high_resolution_clock::now();
+
+        LOG_INFO(g_logger, "Init time: ", elapsedSeconds(t0, t1));
+        LOG_INFO(g_logger, " Gen time: ", elapsedSeconds(t1, t2) / 16.0);
+    }
+
+    return 0;
+
+    {
+        TiledModelOptions opt;
+        opt.outputSize = { 128, 128 };
         opt.outputWrapping = WrappingMode::All;
 
         auto t0 = std::chrono::high_resolution_clock::now();
@@ -138,7 +196,7 @@ int main()
         opt.outputWrapping = WrappingMode::All;
         opt.patternSize = 3;
         opt.stride = { 1, 1 };
-        opt.setOutputSizeAtLeast({ 256, 256 });
+        opt.setOutputSizeAtLeast({ 128, 128 });
         if (!opt.isValid())
         {
             std::cout << "Invalid config\n";

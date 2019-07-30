@@ -44,6 +44,7 @@ struct TiledModel : Model<CellTypeT>
     using CellType = CellTypeT;
     using PatternsEntryType = std::pair<typename Patterns<CellType>::ElementType, float>;
     using TileSetType = TileSet<CellType>;
+    using TileType = typename TileSetType::TileType;
     using BaseType = Model<CellType>;
 
     TiledModel(const TileSetType& tiles, const TiledModelOptions& options) : 
@@ -136,12 +137,7 @@ private:
                         // we try to put the two tiles in all possible side by side configurations
                         for (Direction connectionDir : values<Direction>())
                         {
-                            // we need to know to which original side each transformed side
-                            // corresponds to
-                            const Direction firstOriginalDirection = invMapping(s1)[connectionDir];
-                            const Direction secondOriginalDirection = invMapping(s2)[oppositeTo(connectionDir)];
-
-                            if (firstTile.sideIds()[firstOriginalDirection] == secondTile.sideIds()[secondOriginalDirection])
+                            if (isConnectionAllowed(firstTile, s1, secondTile, s2, connectionDir))
                             {
                                 const int firstPatternId = flattenedIndex[firstTileId] + i;
                                 const int secondPatternId = flattenedIndex[secondTileId] + j;
@@ -160,5 +156,22 @@ private:
         }
 
         return compatibilities;
+    }
+
+    [[nodiscard]] static bool isConnectionAllowed(const TileType& firstTile, D4Symmetry firstTransform, const TileType& secondTile, D4Symmetry secondTransform, Direction connectionDir)
+    {
+        // TODO: how to get id? maybe store it in tile? how to enforce correctness?
+        if (&firstTile == &secondTile)
+        {
+            if (!firstTile.allowsSelfConnections())
+            {
+                return false;
+            }
+        }
+
+        const int firstSideId = firstTile.sideId(connectionDir, firstTransform, false);
+        const int secondSideId = secondTile.sideId(oppositeTo(connectionDir), secondTransform, true);
+
+        return firstSideId == secondSideId;
     }
 };

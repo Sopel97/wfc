@@ -8,15 +8,56 @@
 #include "SmallVector.h"
 #include "NormalizedHistogram.h"
 
+// TODO: maybe some more rules to disallow all connections between two tiles.
+//       needed for example for circuit's vias and viad
+struct TileConnectivity
+{
+    ByDirection<int> sideId;
+    ByDirection<int> mirroredSideId;
+    bool allowsSelfConnections;
+
+    TileConnectivity(ByDirection<int> sideId) :
+        sideId(sideId),
+        mirroredSideId(sideId),
+        allowsSelfConnections(true)
+    {
+
+    }
+
+    TileConnectivity(ByDirection<int> sideId, bool b) :
+        sideId(sideId),
+        mirroredSideId(sideId),
+        allowsSelfConnections(b)
+    {
+
+    }
+
+    TileConnectivity(ByDirection<int> sideId, ByDirection<int> mirroredSideId) :
+        sideId(sideId),
+        mirroredSideId(mirroredSideId),
+        allowsSelfConnections(true)
+    {
+
+    }
+
+    TileConnectivity(ByDirection<int> sideId, ByDirection<int> mirroredSideId, bool b) :
+        sideId(sideId),
+        mirroredSideId(mirroredSideId),
+        allowsSelfConnections(b)
+    {
+
+    }
+};
+
 template <typename CellTypeT>
 struct Tile
 {
     using PatternType = SquareArray2<CellTypeT>;
-    using SideIdType = int;
+    using SideIdType = std::pair<int, int>;
 
-    Tile(PatternType&& basePattern, const ByDirection<SideIdType>& sideIds, D4SymmetriesClosure symmetries, float weight) :
+    Tile(PatternType&& basePattern, const TileConnectivity& connectivity, D4SymmetriesClosure symmetries, float weight) :
         m_distinctPatterns{},
-        m_sideIds(sideIds),
+        m_connectivity(connectivity),
         m_symmetries(symmetries),
         m_missingSymmetries(missing(symmetries)),
         m_weight(weight)
@@ -73,14 +114,28 @@ struct Tile
         return m_distinctPatterns[indexOf(s)];
     }
 
-    const ByDirection<SideIdType>& sideIds() const
+    const TileConnectivity& connectivity() const
     {
-        return m_sideIds;
+        return m_connectivity;
+    }
+
+    const int sideId(Direction side, D4Symmetry transform, bool mirror) const
+    {
+        // we need to know to which original side each transformed side
+        // corresponds to
+        const Direction originalSide = invMapping(transform)[side];
+        const int isMirror = isMirroring(transform) ^ mirror;
+        return isMirror ? m_connectivity.mirroredSideId[originalSide] : m_connectivity.sideId[originalSide]; 
+    }
+
+    bool allowsSelfConnections() const
+    {
+        return m_connectivity.allowsSelfConnections;
     }
 
 private:
     SmallVector<PatternType, 8> m_distinctPatterns;
-    ByDirection<SideIdType> m_sideIds;
+    TileConnectivity m_connectivity;
     D4SymmetriesClosure m_symmetries;
     D4Symmetries m_missingSymmetries; // symmetries that produce the m_distinctPatterns
     float m_weight;

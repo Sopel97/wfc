@@ -132,9 +132,9 @@ struct ByDirection : std::array<T, 4>
     }
 
 private:
-    template <typename... FwdT>
-    constexpr ByDirection(FwdT&& ... args) :
-        BaseType{ std::forward<FwdT>(args)... }
+    template <typename Fwd0T, typename Fwd1T, typename Fwd2T, typename Fwd3T>
+    constexpr ByDirection(Fwd0T&& n, Fwd1T&& e, Fwd2T&& s, Fwd3T&& w) :
+        BaseType{ std::forward<Fwd0T>(n), std::forward<Fwd1T>(e), std::forward<Fwd2T>(s), std::forward<Fwd3T>(w) }
     {
 
     }
