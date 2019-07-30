@@ -137,7 +137,7 @@ private:
                         // we try to put the two tiles in all possible side by side configurations
                         for (Direction connectionDir : values<Direction>())
                         {
-                            if (isConnectionAllowed(firstTile, s1, secondTile, s2, connectionDir))
+                            if (areSidesCompatibile(tiles, firstTile, s1, secondTile, s2, connectionDir))
                             {
                                 const int firstPatternId = flattenedIndex[firstTileId] + i;
                                 const int secondPatternId = flattenedIndex[secondTileId] + j;
@@ -158,20 +158,11 @@ private:
         return compatibilities;
     }
 
-    [[nodiscard]] static bool isConnectionAllowed(const TileType& firstTile, D4Symmetry firstTransform, const TileType& secondTile, D4Symmetry secondTransform, Direction connectionDir)
+    [[nodiscard]] static bool areSidesCompatibile(const TileSetType& tiles, const TileType& firstTile, D4Symmetry firstTransform, const TileType& secondTile, D4Symmetry secondTransform, Direction connectionDir)
     {
-        // TODO: how to get id? maybe store it in tile? how to enforce correctness?
-        if (&firstTile == &secondTile)
-        {
-            if (!firstTile.allowsSelfConnections())
-            {
-                return false;
-            }
-        }
-
         const int firstSideId = firstTile.sideId(connectionDir, firstTransform, false);
         const int secondSideId = secondTile.sideId(oppositeTo(connectionDir), secondTransform, true);
 
-        return firstSideId == secondSideId;
+        return firstSideId == secondSideId && !tiles.areIncompatibile(firstTile.id(), secondTile.id(), firstSideId);
     }
 };

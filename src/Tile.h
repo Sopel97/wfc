@@ -2,48 +2,32 @@
 
 #include <vector>
 #include <utility>
+#include <atomic>
+#include <set>
+#include <tuple>
 
 #include "Array2.h"
 #include "D4Symmetry.h"
 #include "SmallVector.h"
 #include "NormalizedHistogram.h"
 
-// TODO: maybe some more rules to disallow all connections between two tiles.
-//       needed for example for circuit's vias and viad
 struct TileConnectivity
 {
-    ByDirection<int> sideId;
-    ByDirection<int> mirroredSideId;
-    bool allowsSelfConnections;
+    using SideIdType = int;
 
-    TileConnectivity(ByDirection<int> sideId) :
+    ByDirection<SideIdType> sideId;
+    ByDirection<SideIdType> mirroredSideId;
+
+    TileConnectivity(ByDirection<SideIdType> sideId) :
         sideId(sideId),
-        mirroredSideId(sideId),
-        allowsSelfConnections(true)
+        mirroredSideId(sideId)
     {
 
     }
 
-    TileConnectivity(ByDirection<int> sideId, bool b) :
+    TileConnectivity(ByDirection<SideIdType> sideId, ByDirection<SideIdType> mirroredSideId) :
         sideId(sideId),
-        mirroredSideId(sideId),
-        allowsSelfConnections(b)
-    {
-
-    }
-
-    TileConnectivity(ByDirection<int> sideId, ByDirection<int> mirroredSideId) :
-        sideId(sideId),
-        mirroredSideId(mirroredSideId),
-        allowsSelfConnections(true)
-    {
-
-    }
-
-    TileConnectivity(ByDirection<int> sideId, ByDirection<int> mirroredSideId, bool b) :
-        sideId(sideId),
-        mirroredSideId(mirroredSideId),
-        allowsSelfConnections(b)
+        mirroredSideId(mirroredSideId)
     {
 
     }
@@ -53,14 +37,17 @@ template <typename CellTypeT>
 struct Tile
 {
     using PatternType = SquareArray2<CellTypeT>;
-    using SideIdType = std::pair<int, int>;
+    using IdType = int;
+
+    static inline std::atomic<IdType> nextId = 0;
 
     Tile(PatternType&& basePattern, const TileConnectivity& connectivity, D4SymmetriesClosure symmetries, float weight) :
         m_distinctPatterns{},
         m_connectivity(connectivity),
         m_symmetries(symmetries),
         m_missingSymmetries(missing(symmetries)),
-        m_weight(weight)
+        m_weight(weight),
+        m_id(nextId++)
     {
         m_distinctPatterns = generateSymmetries(std::move(basePattern), m_missingSymmetries);
     }
@@ -128,9 +115,14 @@ struct Tile
         return isMirror ? m_connectivity.mirroredSideId[originalSide] : m_connectivity.sideId[originalSide]; 
     }
 
-    bool allowsSelfConnections() const
+    IdType id() const
     {
-        return m_connectivity.allowsSelfConnections;
+        return m_id;
+    }
+
+    void setId(IdType id)
+    {
+        m_id = id;
     }
 
 private:
@@ -139,6 +131,7 @@ private:
     D4SymmetriesClosure m_symmetries;
     D4Symmetries m_missingSymmetries; // symmetries that produce the m_distinctPatterns
     float m_weight;
+    IdType m_id;
 
     int indexOf(D4Symmetry symmetry) const
     {
@@ -181,13 +174,16 @@ struct TileSet
 {
     using CellType = CellTypeT;
     using TileType = Tile<CellType>;
+    using TileIdType = typename TileType::IdType;
     using TileArrayType = std::vector<TileType>;
+    using SideIdType = typename TileConnectivity::SideIdType;
 
     TileSet() = default;
 
-    int emplace(TileType&& tile)
+    TileIdType emplace(TileType&& tile)
     {
         m_tiles.emplace_back(std::move(tile));
+        tile.setId(size() - 1);
         return size() - 1;
     }
 
@@ -216,6 +212,21 @@ struct TileSet
         return std::move(m_tiles);
     }
 
+    void makeIncompatibile(TileIdType id1, TileIdType id2, SideIdType s)
+    {
+        m_incompatibilities.emplace(id1, id2, s);
+        if (id1 != id2)
+        {
+            m_incompatibilities.emplace(id2, id1, s);
+        }
+    }
+
+    bool areIncompatibile(TileIdType id1, TileIdType id2, SideIdType s) const
+    {
+        return m_incompatibilities.count({ id1, id2, s }) > 0;
+    }
+
 private:
     TileArrayType m_tiles;
+    std::set<std::tuple<TileIdType, TileIdType, SideIdType>> m_incompatibilities;
 };
