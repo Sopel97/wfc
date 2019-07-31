@@ -155,11 +155,12 @@ int main()
             auto v = m.next();
             if (v.has_value())
             {
-                saveImage(v.value(), std::string("sample_out/circuit/") + std::to_string(i) + ".png");
+                //saveImage(v.value(), std::string("sample_out/circuit/") + std::to_string(i) + ".png");
+                LOG_ERROR(g_logger, "Saved");
             }
             else
             {
-                LOG_ERROR(g_logger, "Contradiction\n");
+                LOG_ERROR(g_logger, "Contradiction");
             }
         }
         auto t2 = std::chrono::high_resolution_clock::now();
@@ -188,7 +189,7 @@ int main()
         }
         else
         {
-            LOG_ERROR(g_logger, "Contradiction\n");
+            LOG_ERROR(g_logger, "Contradiction");
         }
 
         LOG_INFO(g_logger, "Init time: ", elapsedSeconds(t0, t1));
@@ -206,7 +207,7 @@ int main()
         opt.setOutputSizeAtLeast({ 128, 128 });
         if (!opt.isValid())
         {
-            std::cout << "Invalid config\n";
+            std::cout << "Invalid config";
             return 1;
         }
         auto t0 = std::chrono::high_resolution_clock::now();
@@ -222,7 +223,7 @@ int main()
         }
         else
         {
-            LOG_ERROR(g_logger, "Contradiction\n");
+            LOG_ERROR(g_logger, "Contradiction");
         }
 
         LOG_INFO(g_logger, "Init time: ", elapsedSeconds(t0, t1));

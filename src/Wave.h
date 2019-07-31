@@ -327,12 +327,16 @@ public:
         {
         case WrappingMode::None:
             propagateImpl<WrappingMode::None>();
+            break;
         case WrappingMode::Horizontal:
             propagateImpl<WrappingMode::Horizontal>();
+            break;
         case WrappingMode::Vertical:
             propagateImpl<WrappingMode::Vertical>();
+            break;
         case WrappingMode::All:
             propagateImpl<WrappingMode::All>();
+            break;
         }
     }
 
