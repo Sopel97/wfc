@@ -19,6 +19,9 @@
 #include "Logger.h"
 #include "Util.h"
 
+// current implementation is not optimized, but has potential
+//#define USE_UPDATABLE_PRIORITY_QUEUE
+
 struct Wave
 {
     using CompatibilityArrayType = std::vector<ByDirection<std::vector<int>>>;
@@ -35,11 +38,39 @@ private:
         {
             return lhs.entropy < rhs.entropy;
         }
+
+        [[nodiscard]] friend bool operator>(EntropyQueueEntry lhs, EntropyQueueEntry rhs) noexcept
+        {
+            return !(operator<(lhs, rhs));
+        }
     };
+
+#if defined(USE_UPDATABLE_PRIORITY_QUEUE)
     using EntropyQueueType = UpdatablePriorityQueue<EntropyQueueEntry>;
     using EntropyQueueIterator = typename EntropyQueueType::iterator;
 
-    struct Entry
+    struct MemoEntry
+    {
+        using EntropyQueueType = typename EntropyQueueType::iterator;
+
+        // sum { p'(element) * log(p'(element)) }
+        float plogpSum;
+
+        // sum { p'(element) }
+        float pSum;
+
+        int numAvailableElements;
+
+        float entropy;
+
+        bool needsUpdate = false;
+
+        EntropyQueueType iter = {};
+    };
+#else
+    using EntropyQueueType = std::priority_queue<EntropyQueueEntry, std::vector<EntropyQueueEntry>, std::greater<>>;
+
+    struct MemoEntry
     {
         // sum { p'(element) * log(p'(element)) }
         float plogpSum;
@@ -51,10 +82,9 @@ private:
 
         float entropy;
 
-        EntropyQueueIterator iter = {};
-
         bool needsUpdate = false;
     };
+#endif
 
     static_assert(std::decay_t<RandomNumberGeneratorType>::min() == 0);
     static constexpr float rngMax = static_cast<float>(std::decay_t<RandomNumberGeneratorType>::max());
@@ -76,9 +106,9 @@ private:
     // p * log(p)
     std::vector<float> m_plogp;
 
-    Entry m_initEntry;
+    MemoEntry m_initEntry;
 
-    Array2<Entry> m_memo;
+    Array2<MemoEntry> m_memo;
 
     // m_canBePlaced[x][y][elementId]
     Array3<bool> m_canBePlaced;
@@ -182,7 +212,7 @@ public:
             baseEntropy += m_plogp[i];
         }
 
-        m_initEntry = Entry{ baseEntropy, 1.0f, static_cast<int>(freq.size()), -baseEntropy };
+        m_initEntry = MemoEntry{ baseEntropy, 1.0f, static_cast<int>(freq.size()), -baseEntropy };
         auto dNoise = randomNoiseGenerator(m_noiseMax);
         for (auto& e : m_memo)
         {
@@ -200,7 +230,11 @@ public:
 
         for (int i = 0; i < m_memo.size().total(); ++i)
         {
+#if defined(USE_UPDATABLE_PRIORITY_QUEUE)
             m_memo.data()[i].iter = m_entropyQueue.push(EntropyQueueEntry{ m_memo.data()[i].entropy, i });
+#else
+            m_entropyQueue.push(EntropyQueueEntry{ m_memo.data()[i].entropy, i });
+#endif
         }
     }
 
@@ -225,7 +259,11 @@ public:
         m_entropyQueue = {};
         for (int i = 0; i < m_memo.size().total(); ++i)
         {
+#if defined(USE_UPDATABLE_PRIORITY_QUEUE)
             m_memo.data()[i].iter = m_entropyQueue.push(EntropyQueueEntry{ m_memo.data()[i].entropy, i });
+#else
+            m_entropyQueue.push(EntropyQueueEntry{ m_memo.data()[i].entropy, i });
+#endif
         }
     }
 
@@ -334,6 +372,13 @@ public:
             return { MinimalEntropyQueryResult::Contradiction, {} };
         }
 
+#if !defined(USE_UPDATABLE_PRIORITY_QUEUE)
+        while (!m_entropyQueue.empty() && m_memo.data()[m_entropyQueue.top().index].numAvailableElements <= 1)
+        {
+            m_entropyQueue.pop();
+        }
+#endif
+
         // all settled
         if (m_entropyQueue.empty())
         {
@@ -382,6 +427,7 @@ public:
                 m_hasContradiction = true;
             }
 
+#if defined(USE_UPDATABLE_PRIORITY_QUEUE)
             if (memo.iter != EntropyQueueIterator{})
             {
                 if (memo.numAvailableElements <= 1)
@@ -395,6 +441,13 @@ public:
                     memo.iter = m_entropyQueue.update(memo.iter, [entropy = memo.entropy](EntropyQueueEntry& e) {e.entropy = entropy; });
                 }
             }
+#else
+            if (memo.numAvailableElements > 1)
+            {
+                memo.entropy = util::approximateLog(memo.pSum) - memo.plogpSum / memo.pSum + randomNoiseGenerator(m_noiseMax)();
+                m_entropyQueue.push(EntropyQueueEntry{ memo.entropy, i });
+            }
+#endif
         }
 
         m_pendingMemoUpdates.clear();
@@ -454,12 +507,14 @@ private:
         {
             m_hasContradiction = true;
         }
+#if defined(USE_UPDATABLE_PRIORITY_QUEUE)
         // we don't need to change entropy since the values doesn't matter anymore anyway
         if (memo.iter != EntropyQueueIterator{})
         {
             m_entropyQueue.erase(memo.iter);
             memo.iter = {};
         }
+#endif
     }
 
     template <WrappingMode WrapV>
@@ -578,3 +633,5 @@ private:
         }
     };
 };
+
+#undef USE_UPDATABLE_PRIORITY_QUEUE

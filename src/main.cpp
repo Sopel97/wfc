@@ -169,8 +169,6 @@ int main()
         LOG_INFO(g_logger, " Gen time: ", elapsedSeconds(t1, t2) / 32.0);
     }
 
-    return 0;
-
     {
         TiledModelOptions opt;
         opt.outputSize = { 128, 128 };
@@ -185,7 +183,7 @@ int main()
         auto t2 = std::chrono::high_resolution_clock::now();
         if (v.has_value())
         {
-            saveImage(v.value(), "sample_out/knot.png");
+            //saveImage(v.value(), "sample_out/knot.png");
         }
         else
         {
@@ -219,7 +217,7 @@ int main()
         auto t2 = std::chrono::high_resolution_clock::now();
         if (v.has_value())
         {
-            saveImage(v.value(), "sample_out/flowers.png");
+            //saveImage(v.value(), "sample_out/flowers.png");
         }
         else
         {
