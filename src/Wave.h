@@ -19,6 +19,9 @@
 #include "Logger.h"
 #include "Util.h"
 
+// INFO: const sometimes ommited with structured bindings due to clang bug
+//       https://bugs.llvm.org/show_bug.cgi?id=33236
+
 // current implementation is not optimized, but has potential
 //#define USE_UPDATABLE_PRIORITY_QUEUE
 
@@ -133,7 +136,7 @@ private:
 
     Array3<ByDirection<int>> initNumCompatibile() const
     {
-        const auto [width, height] = size();
+        /*const*/ auto [width, height] = size();
         const int numElements = static_cast<int>(m_plogp.size());
 
         Array3<ByDirection<int>> res({ width, height, numElements });
@@ -522,7 +525,7 @@ private:
     {
         while (!m_propagationQueue.empty())
         {
-            const auto [x, y, elementId] = m_propagationQueue.back();
+            /*const*/ auto [x, y, elementId] = m_propagationQueue.back();
             m_propagationQueue.pop_back();
 
             applyOffsetAndPropagate<WrapV, Direction::North>(x, y, elementId);

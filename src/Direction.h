@@ -115,11 +115,11 @@ struct ByDirection : std::array<T, 4>
         return ByDirection(std::forward<FwdT>(args)...);
     }
 
-    constexpr ByDirection() noexcept = default;
-    constexpr ByDirection(const ByDirection&) noexcept = default;
-    constexpr ByDirection(ByDirection&&) noexcept = default;
-    constexpr ByDirection& operator=(const ByDirection&) noexcept = default;
-    constexpr ByDirection& operator=(ByDirection&&) noexcept = default;
+    constexpr ByDirection() = default;
+    constexpr ByDirection(const ByDirection&) = default;
+    constexpr ByDirection(ByDirection&&) = default;
+    constexpr ByDirection& operator=(const ByDirection&) = default;
+    constexpr ByDirection& operator=(ByDirection&&) = default;
 
     [[nodiscard]] constexpr T& operator[](Direction dir)
     {

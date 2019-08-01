@@ -21,10 +21,10 @@ struct ColorRGBf
 
     }
 
-    constexpr ColorRGBf(const ColorRGBf&) noexcept = default;
-    constexpr ColorRGBf(ColorRGBf&&) noexcept = default;
-    constexpr ColorRGBf& operator=(const ColorRGBf&) noexcept = default;
-    constexpr ColorRGBf& operator=(ColorRGBf&&) noexcept = default;
+    constexpr ColorRGBf(const ColorRGBf&) = default;
+    constexpr ColorRGBf(ColorRGBf&&) = default;
+    constexpr ColorRGBf& operator=(const ColorRGBf&) = default;
+    constexpr ColorRGBf& operator=(ColorRGBf&&) = default;
 
     constexpr ColorRGBf& operator+=(const ColorRGBf& rhs)
     {
@@ -153,10 +153,10 @@ struct ColorRGBi
 
     }
 
-    constexpr ColorRGBi(const ColorRGBi&) noexcept = default;
-    constexpr ColorRGBi(ColorRGBi&&) noexcept = default;
-    constexpr ColorRGBi& operator=(const ColorRGBi&) noexcept = default;
-    constexpr ColorRGBi& operator=(ColorRGBi&&) noexcept = default;
+    constexpr ColorRGBi(const ColorRGBi&) = default;
+    constexpr ColorRGBi(ColorRGBi&&) = default;
+    constexpr ColorRGBi& operator=(const ColorRGBi&) = default;
+    constexpr ColorRGBi& operator=(ColorRGBi&&) = default;
 
     [[nodiscard]] constexpr friend bool operator<(const ColorRGBi& lhs, const ColorRGBi& rhs) noexcept
     {

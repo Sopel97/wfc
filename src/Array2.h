@@ -553,7 +553,7 @@ template <typename T>
 template <typename T>
 [[nodiscard]] bool overlapEqualWhenOffset(const SquareArray2<T>& lhs, const SquareArray2<T>& rhs, Coords2i offset)
 {
-    const auto [dx, dy] = offset;
+    auto [dx, dy] = offset;
     const auto lhsSize = lhs.size();
     const auto rhsSize = rhs.size();
 

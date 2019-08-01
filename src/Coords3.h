@@ -94,7 +94,7 @@ struct Coords3
 
     [[nodiscard]] constexpr Coords3 sign() const noexcept
     {
-        return Coords2(::sign(x), ::sign(y), ::sign(z));
+        return Coords2(util::sign(x), util::sign(y), util::sign(z));
     }
 };
 

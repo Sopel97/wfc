@@ -64,7 +64,7 @@ static inline void saveImage(const Array2<ColorRGBi>& image, const std::string& 
     std::vector<unsigned char> data;
     data.reserve(image.size().total() * 3);
 
-    const auto [width, height] = image.size();
+    auto [width, height] = image.size();
     
     for (int y = 0; y < height; ++y)
     {

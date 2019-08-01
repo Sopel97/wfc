@@ -123,7 +123,7 @@ private:
         const Array2<int> wave = this->wave().probeAll();
         const Size2i waveSize = wave.size();
 
-        const auto [sx, sy] = m_options.stride;
+        auto [sx, sy] = m_options.stride;
 
         Array2<CellType> out(m_options.outputSize);
 

@@ -146,7 +146,7 @@ private:
 template <typename T, typename Func>
 void forEach(Array3<T>& a, Func&& func)
 {
-    const auto [width, height, depth] = a.size();
+    auto [width, height, depth] = a.size();
     auto* data = a.data();
     for (int x = 0; x < width; ++x)
     {
