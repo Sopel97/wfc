@@ -156,7 +156,7 @@ int main()
             if (v.has_value())
             {
                 //saveImage(v.value(), std::string("sample_out/circuit/") + std::to_string(i) + ".png");
-                LOG_ERROR(g_logger, "Saved");
+                LOG_ERROR(g_logger, "Successful");
             }
             else
             {

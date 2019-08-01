@@ -15,6 +15,7 @@
 #include "Array3.h"
 #include "Direction.h"
 #include "NormalizedHistogram.h"
+#include "UpdatablePriorityQueue.h"
 #include "Logger.h"
 #include "Util.h"
 
@@ -24,6 +25,20 @@ struct Wave
     using RandomNumberGeneratorType = pcg32_fast;
 
 private:
+    struct EntropyQueueEntry
+    {
+        float entropy;
+
+        int index;
+
+        [[nodiscard]] friend bool operator<(EntropyQueueEntry lhs, EntropyQueueEntry rhs) noexcept
+        {
+            return lhs.entropy < rhs.entropy;
+        }
+    };
+    using EntropyQueueType = UpdatablePriorityQueue<EntropyQueueEntry>;
+    using EntropyQueueIterator = typename EntropyQueueType::iterator;
+
     struct Entry
     {
         // sum { p'(element) * log(p'(element)) }
@@ -35,6 +50,8 @@ private:
         int numAvailableElements;
 
         float entropy;
+
+        EntropyQueueIterator iter = {};
     };
 
     static_assert(std::decay_t<RandomNumberGeneratorType>::min() == 0);
@@ -77,6 +94,8 @@ private:
 
     // each elements holds {x, y, elementId}
     std::vector<Coords3i> m_propagationQueue;
+
+    EntropyQueueType m_entropyQueue;
 
     Array3<ByDirection<int>> initNumCompatibile() const
     {
@@ -174,6 +193,11 @@ public:
         LOG_INFO(g_logger, "entropy = ", -baseEntropy);
         LOG_INFO(g_logger, "noiseMax = ", m_noiseMax);
         LOG_INFO(g_logger, "size = (", m_size.width, ", ", m_size.height, ")");
+
+        for (int i = 0; i < m_memo.size().total(); ++i)
+        {
+            m_memo.data()[i].iter = m_entropyQueue.push(EntropyQueueEntry{ m_memo.data()[i].entropy, i });
+        }
     }
 
     Wave(const Wave&) = default;
@@ -192,6 +216,12 @@ public:
         for (auto& e : m_memo)
         {
             e.entropy += dNoise();
+        }
+
+        m_entropyQueue = {};
+        for (int i = 0; i < m_memo.size().total(); ++i)
+        {
+            m_memo.data()[i].iter = m_entropyQueue.push(EntropyQueueEntry{ m_memo.data()[i].entropy, i });
         }
     }
 
@@ -300,25 +330,13 @@ public:
             return { MinimalEntropyQueryResult::Contradiction, {} };
         }
 
-        const int s = size().total();
-        const auto* memos = m_memo.data();
-
-        auto it = filterMinElement(
-            std::execution::par_unseq,
-            std::begin(m_memo),
-            std::end(m_memo),
-            Entry{ 0.0f, 0.0f, 0, std::numeric_limits<float>::max() },
-            [](const auto& e) { return e.numAvailableElements > 1; },
-            [](const auto& lhs, const auto& rhs) { return lhs.entropy < rhs.entropy; }
-        );
-
         // all settled
-        if (it == m_memo.end())
+        if (m_entropyQueue.empty())
         {
             return { MinimalEntropyQueryResult::Finished, {} };
         }
 
-        return { MinimalEntropyQueryResult::Success, m_memo.coordsFromFlatIndex(static_cast<int>(std::distance(std::begin(m_memo), it))) };
+        return { MinimalEntropyQueryResult::Success, m_memo.coordsFromFlatIndex(m_entropyQueue.top().index) };
     }
 
     void propagate()
@@ -365,6 +383,18 @@ private:
         }
 
         memo.entropy = util::approximateLog(memo.pSum) - memo.plogpSum / memo.pSum + randomNoiseGenerator(m_noiseMax)();
+        if (memo.iter != EntropyQueueIterator{})
+        {
+            if (memo.numAvailableElements <= 1)
+            {
+                m_entropyQueue.erase(memo.iter);
+                memo.iter = {};
+            }
+            else
+            {
+                memo.iter = m_entropyQueue.update(memo.iter, [entropy = memo.entropy](EntropyQueueEntry& e) {e.entropy = entropy; });
+            }
+        }
     }
 
     void makeUnplacableAllExcept(Coords2i pos, int preservedElementId)
@@ -397,6 +427,11 @@ private:
             m_hasContradiction = true;
         }
         // we don't need to change entropy since the values doesn't matter anymore anyway
+        if (memo.iter != EntropyQueueIterator{})
+        {
+            m_entropyQueue.erase(memo.iter);
+            memo.iter = {};
+        }
     }
 
     template <WrappingMode WrapV>

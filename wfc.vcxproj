@@ -184,6 +184,7 @@
     <ClInclude Include="src\D4Symmetry.h" />
     <ClInclude Include="src\Tile.h" />
     <ClInclude Include="src\TiledModel.h" />
+    <ClInclude Include="src\UpdatablePriorityQueue.h" />
     <ClInclude Include="src\Util.h" />
     <ClInclude Include="src\Wave.h" />
     <ClInclude Include="src\WrappingMode.h" />

@@ -102,6 +102,9 @@
     <ClInclude Include="src\Algorithm.h">
       <Filter>Header Files\src</Filter>
     </ClInclude>
+    <ClInclude Include="src\UpdatablePriorityQueue.h">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
