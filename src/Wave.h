@@ -128,7 +128,7 @@ private:
     Array3<ByDirection<int>> m_numCompatibile;
 
     // each elements holds {x, y, elementId}
-    std::vector<Coords3i> m_propagationQueue;
+    std::queue<Coords3i> m_propagationQueue;
 
     EntropyQueueType m_entropyQueue;
 
@@ -469,7 +469,7 @@ private:
         canBePlaced = false;
 
         m_numCompatibile.data()[idx] = {};
-        m_propagationQueue.emplace_back(pos, elementId);
+        m_propagationQueue.emplace(pos, elementId);
 
         const int memoIdx = m_memo.getFlatIndex(pos);
         auto& memo = m_memo.data()[memoIdx];
@@ -497,7 +497,7 @@ private:
             if (canBePlaced)
             {
                 m_numCompatibile.data()[idx] = {};
-                m_propagationQueue.emplace_back(pos, elementId);
+                m_propagationQueue.emplace(pos, elementId);
                 canBePlaced = false;
             }
         }
@@ -525,8 +525,8 @@ private:
     {
         while (!m_propagationQueue.empty())
         {
-            /*const*/ auto [x, y, elementId] = m_propagationQueue.back();
-            m_propagationQueue.pop_back();
+            /*const*/ auto [x, y, elementId] = m_propagationQueue.front();
+            m_propagationQueue.pop();
 
             applyOffsetAndPropagate<WrapV, Direction::North>(x, y, elementId);
             applyOffsetAndPropagate<WrapV, Direction::East>(x, y, elementId);
