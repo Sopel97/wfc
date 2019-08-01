@@ -18,17 +18,17 @@ struct UpdatablePriorityQueue
     template <typename... ArgsTs>
     iterator emplace(ArgsTs&&... args)
     {
-        return m_values.emplace(T(std::forward<ArgsTs>(args)...));
+        return m_values.emplace(std::forward<ArgsTs>(args)...);
     }
 
     iterator push(const T& values)
     {
-        return m_values.insert(values);
+        return m_values.emplace(values);
     }
 
     iterator push(T&& values)
     {
-        return m_values.insert(std::move(values));
+        return m_values.emplace(std::move(values));
     }
 
     void erase(iterator iter)
