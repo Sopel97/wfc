@@ -52,6 +52,8 @@ private:
         float entropy;
 
         EntropyQueueIterator iter = {};
+
+        bool needsUpdate = false;
     };
 
     static_assert(std::decay_t<RandomNumberGeneratorType>::min() == 0);
@@ -96,6 +98,8 @@ private:
     std::vector<Coords3i> m_propagationQueue;
 
     EntropyQueueType m_entropyQueue;
+
+    std::vector<int> m_pendingMemoUpdates;
 
     Array3<ByDirection<int>> initNumCompatibile() const
     {
@@ -356,6 +360,44 @@ public:
             propagateImpl<WrappingMode::All>();
             break;
         }
+        doPendingMemoUpdates();
+    }
+    
+    void doPendingMemoUpdates()
+    {
+        auto* memos = m_memo.data();
+        for (int i : m_pendingMemoUpdates)
+        {
+            auto& memo = memos[i];
+
+            if (!memo.needsUpdate)
+            {
+                continue;
+            }
+
+            memo.needsUpdate = false;
+
+            if (memo.numAvailableElements == 0)
+            {
+                m_hasContradiction = true;
+            }
+
+            if (memo.iter != EntropyQueueIterator{})
+            {
+                if (memo.numAvailableElements <= 1)
+                {
+                    m_entropyQueue.erase(memo.iter);
+                    memo.iter = {};
+                }
+                else
+                {
+                    memo.entropy = util::approximateLog(memo.pSum) - memo.plogpSum / memo.pSum + randomNoiseGenerator(m_noiseMax)();
+                    memo.iter = m_entropyQueue.update(memo.iter, [entropy = memo.entropy](EntropyQueueEntry& e) {e.entropy = entropy; });
+                }
+            }
+        }
+
+        m_pendingMemoUpdates.clear();
     }
 
 private:
@@ -373,28 +415,14 @@ private:
         m_numCompatibile.data()[idx] = {};
         m_propagationQueue.emplace_back(pos, elementId);
 
-        auto& memo = m_memo[pos];
+        const int memoIdx = m_memo.getFlatIndex(pos);
+        auto& memo = m_memo.data()[memoIdx];
         memo.plogpSum -= m_plogp[elementId];
         memo.pSum -= m_p[elementId];
         memo.numAvailableElements -= 1;
-        if (memo.numAvailableElements == 0)
-        {
-            m_hasContradiction = true;
-        }
+        memo.needsUpdate = true;
 
-        memo.entropy = util::approximateLog(memo.pSum) - memo.plogpSum / memo.pSum + randomNoiseGenerator(m_noiseMax)();
-        if (memo.iter != EntropyQueueIterator{})
-        {
-            if (memo.numAvailableElements <= 1)
-            {
-                m_entropyQueue.erase(memo.iter);
-                memo.iter = {};
-            }
-            else
-            {
-                memo.iter = m_entropyQueue.update(memo.iter, [entropy = memo.entropy](EntropyQueueEntry& e) {e.entropy = entropy; });
-            }
-        }
+        m_pendingMemoUpdates.emplace_back(memoIdx);
     }
 
     void makeUnplacableAllExcept(Coords2i pos, int preservedElementId)
