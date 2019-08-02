@@ -211,6 +211,7 @@
     <ClInclude Include="src\Size3.h" />
     <ClInclude Include="src\SmallVector.h" />
     <ClInclude Include="src\D4Symmetry.h" />
+    <ClInclude Include="src\Span.h" />
     <ClInclude Include="src\Tile.h" />
     <ClInclude Include="src\TiledModel.h" />
     <ClInclude Include="src\UpdatablePriorityQueue.h" />

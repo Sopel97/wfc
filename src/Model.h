@@ -15,12 +15,20 @@
 #include "WrappingMode.h"
 #include "Logger.h"
 #include "Wave.h"
+#include "Direction.h"
 
 template <typename CellTypeT>
 struct Model
 {
     using CellType = CellTypeT;
     using PatternsEntryType = std::pair<typename Patterns<CellType>::ElementType, float>;
+    using CompatibilityArrayType = typename Wave::CompatibilityArrayType;
+
+    Model(const Model&) = delete;
+    Model(Model&&) = default;
+    Model& operator=(const Model&) = delete;
+    Model& operator=(Model&&) = default;
+    ~Model() = default;
 
     std::optional<Array2<CellType>> next()
     {
@@ -47,10 +55,21 @@ struct Model
         }
     }
 
+    const Patterns<CellType>& patterns() const
+    {
+        return m_patterns;
+    }
+
+    const CompatibilityArrayType& compatibility() const
+    {
+        return m_compatibile;
+    }
+
 protected:
-    Model(Patterns<CellType>&& patterns, Wave::CompatibilityArrayType&& compatibility, std::uint64_t seed, Size2i waveSize, WrappingMode waveWrapping) :
+    Model(Patterns<CellType>&& patterns, CompatibilityArrayType&& compatibility, std::uint64_t seed, Size2i waveSize, WrappingMode waveWrapping) :
+        m_compatibile(std::move(compatibility)),
         m_patterns(std::move(patterns)),
-        m_wave(std::move(compatibility), seed, waveSize, m_patterns, waveWrapping),
+        m_wave(m_compatibile, seed, waveSize, m_patterns, waveWrapping),
         m_firstRun(true)
     {
     }
@@ -62,12 +81,11 @@ protected:
         return m_wave;
     }
 
-    const Patterns<CellType>& patterns() const
-    {
-        return m_patterns;
-    }
-
 private:
+    // m_compatibility[elementId][dir] contains all elements that
+    // can be placed next to element with id `elementId` in the `dir` direction
+    CompatibilityArrayType m_compatibile;
+
     Patterns<CellType> m_patterns;
     Wave m_wave;
     bool m_firstRun;

@@ -18,6 +18,7 @@
 #include "UpdatablePriorityQueue.h"
 #include "Logger.h"
 #include "Util.h"
+#include "Span.h"
 
 // INFO: const sometimes ommited with structured bindings due to clang bug
 //       https://bugs.llvm.org/show_bug.cgi?id=33236
@@ -27,8 +28,10 @@
 
 struct Wave
 {
-    using CompatibilityArrayType = std::vector<ByDirection<std::vector<int>>>;
     using RandomNumberGeneratorType = pcg32_fast;
+    using CompatibilityArrayType = std::vector<ByDirection<std::vector<int>>>;
+    using CompatibilityElementIterator = typename CompatibilityArrayType::const_iterator;
+    using FrequencyIterator = typename NormalizedFrequencies::const_iterator;
 
 private:
     struct EntropyQueueEntry
@@ -103,11 +106,13 @@ private:
 
     bool m_hasContradiction;
 
+    IterSpan<CompatibilityElementIterator> m_compatibile;
+
     // p
-    const float* m_p;
+    IterSpan<FrequencyIterator> m_p;
 
     // p * log(p)
-    std::vector<float> m_plogp;
+    IterSpan<FrequencyIterator> m_plogp;
 
     MemoEntry m_initEntry;
 
@@ -115,10 +120,6 @@ private:
 
     // m_canBePlaced[x][y][elementId]
     Array3<bool> m_canBePlaced;
-
-    // m_compatibility[elementId][dir] contains all elements that
-    // can be placed next to element with id `elementId` in the `dir` direction
-    CompatibilityArrayType m_compatibile;
 
     // m_numCompatibile[{x, y, elementId}][dir]
     // denotes the number of elements in the wave that can be placed
@@ -137,21 +138,17 @@ private:
     Array3<ByDirection<int>> initNumCompatibile() const
     {
         /*const*/ auto [width, height] = size();
-        const int numElements = static_cast<int>(m_plogp.size());
+        const int ne = numElements();
 
-        Array3<ByDirection<int>> res({ width, height, numElements });
+        Array3<ByDirection<int>> res({ width, height, ne });
 
         forEach(res, [&](ByDirection<int>& r, int x, int y, int elementId) {
             const auto& compatibile = m_compatibile[elementId];
 
-            ByDirection<int> counts{};
-
             for (Direction dir : values<Direction>())
             {
-                counts[dir] = static_cast<int>(compatibile[oppositeTo(dir)].size());
+                r[dir] = static_cast<int>(compatibile[oppositeTo(dir)].size());
             }
-
-            r = counts;
         });
 
         return res;
@@ -180,26 +177,19 @@ public:
         Unfinished
     };
 
-    Wave(CompatibilityArrayType&& compatibility, std::uint64_t seed, Size2i size, const NormalizedFrequencies& freq, WrappingMode wrapping) :
+    Wave(const CompatibilityArrayType& compatibility, std::uint64_t seed, Size2i size, const NormalizedFrequencies& freq, WrappingMode wrapping) :
         m_rng(seed),
         m_size(size),
         m_noiseMax(std::numeric_limits<float>::max()),
         m_wrapping(wrapping),
         m_hasContradiction(false),
-        m_p(freq.frequencies().data()),
-        m_plogp(freq.size()),
+        m_compatibile(compatibility),
+        m_p(freq.frequencies()),
+        m_plogp(freq.plogps()),
         m_memo(size),
         m_canBePlaced(Size3i(size, freq.size()), true),
-        m_compatibile(std::move(compatibility)),
         m_numCompatibile(initNumCompatibile())
     {
-        std::transform(
-            m_p,
-            m_p + freq.size(),
-            std::begin(m_plogp),
-            [](float p) { return p * util::approximateLog(p); }
-        );
-
         for (auto&& plogp : m_plogp)
         {
             m_noiseMax = std::min(m_noiseMax, std::abs(plogp));

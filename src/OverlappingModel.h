@@ -101,6 +101,7 @@ struct OverlappingModel : Model<CellTypeT>
 {
     using CellType = CellTypeT;
     using BaseType = Model<CellType>;
+    using CompatibilityArrayType = typename BaseType::CompatibilityArrayType;
 
     OverlappingModel(const Array2<CellType>& input, const OverlappingModelOptions& options) :
         // let's hope the compiler will call gatherPatterns only once
@@ -192,7 +193,7 @@ private:
     }
 
     // precomputed pattern adjacency compatibilities using overlapEqualWhenOffset
-    [[nodiscard]] static Wave::CompatibilityArrayType computeCompatibilities(const Array2<CellType>& input, const OverlappingModelOptions& options)
+    [[nodiscard]] static CompatibilityArrayType computeCompatibilities(const Array2<CellType>& input, const OverlappingModelOptions& options)
     {
         const auto patterns = gatherPatterns(input, options);
 
@@ -200,7 +201,7 @@ private:
 
         const int numPatterns = patterns.size();
 
-        Wave::CompatibilityArrayType compatibilities(numPatterns);
+        CompatibilityArrayType compatibilities(numPatterns);
 
         for (int i = 0; i < numPatterns; ++i)
         {

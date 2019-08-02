@@ -46,6 +46,7 @@ struct TiledModel : Model<CellTypeT>
     using TileSetType = TileSet<CellType>;
     using TileType = typename TileSetType::TileType;
     using BaseType = Model<CellType>;
+    using CompatibilityArrayType = typename BaseType::CompatibilityArrayType;
 
     TiledModel(const TileSetType& tiles, const TiledModelOptions& options) : 
         BaseType(flattenPatterns(tiles), computeCompatibilities(tiles), options.seed, options.waveSize(), options.outputWrapping),
@@ -107,7 +108,7 @@ private:
     }
 
     // ensures index compatibility with output from flattenPatterns()
-    [[nodiscard]] static Wave::CompatibilityArrayType computeCompatibilities(const TileSetType& tiles)
+    [[nodiscard]] static CompatibilityArrayType computeCompatibilities(const TileSetType& tiles)
     {
         std::vector<int> flattenedIndex;
         flattenedIndex.reserve(tiles.size());
@@ -119,7 +120,7 @@ private:
             numPatterns += tile.numDistinct();
         }
 
-        Wave::CompatibilityArrayType compatibilities(numPatterns);
+        CompatibilityArrayType compatibilities(numPatterns);
 
         const int numTiles = tiles.size();
         for (int firstTileId = 0; firstTileId < numTiles; ++firstTileId)

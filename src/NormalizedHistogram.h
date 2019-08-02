@@ -4,11 +4,15 @@
 #include <vector>
 
 #include "Array2.h"
+#include "Util.h"
 
 struct NormalizedFrequencies
 {
     using FrequencyType = float;
     using FrequenciesType = std::vector<FrequencyType>;
+
+    using iterator = typename FrequenciesType::iterator;
+    using const_iterator = typename FrequenciesType::const_iterator;
 
     NormalizedFrequencies() = default;
     NormalizedFrequencies(const NormalizedFrequencies&) = default;
@@ -27,6 +31,16 @@ struct NormalizedFrequencies
         return m_frequencies[i];
     }
 
+    const FrequenciesType& plogps() const
+    {
+        return m_plogps;
+    }
+
+    const FrequencyType& plogp(int i) const
+    {
+        return m_plogps[i];
+    }
+
     int size() const
     {
         return static_cast<int>(m_frequencies.size());
@@ -35,10 +49,12 @@ struct NormalizedFrequencies
     void reserve(int n)
     {
         m_frequencies.reserve(n);
+        m_plogps.reserve(n);
     }
 
 protected:
     FrequenciesType m_frequencies;
+    FrequenciesType m_plogps;
 };
 
 template <typename ElementT>
@@ -46,6 +62,7 @@ struct NormalizedHistogram : public NormalizedFrequencies
 {
     using ElementType = ElementT;
     using ElementsType = std::vector<ElementType>;
+    using BaseType = NormalizedFrequencies;
 
     NormalizedHistogram() = default;
     NormalizedHistogram(const NormalizedHistogram&) = default;
@@ -76,6 +93,11 @@ struct NormalizedHistogram : public NormalizedFrequencies
         {
             f *= invTotal;
         }
+
+        for (float f : m_frequencies)
+        {
+            m_plogps.emplace_back(f * util::approximateLog(f));
+        }
     }
 
     const ElementType& element(int i) const
@@ -90,7 +112,7 @@ struct NormalizedHistogram : public NormalizedFrequencies
 
     void reserve(int n)
     {
-        m_frequencies.reserve(n);
+        BaseType::reserve(n);
         m_elements.reserve(n);
     }
 
