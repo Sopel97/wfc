@@ -16,13 +16,16 @@
 #include "Logger.h"
 #include "Model.h"
 
+template <typename CellTypeT>
 struct TiledModelOptions
 {
+    using SeedType = typename Model<CellTypeT>::ModelSeedType;
+
     static constexpr Size2i defaultOutputSize = { 32, 32 };
 
     WrappingMode outputWrapping;
     Size2i outputSize;
-    std::uint64_t seed;
+    SeedType seed;
 
     TiledModelOptions() :
         outputWrapping(WrappingMode::None),
@@ -47,26 +50,27 @@ struct TiledModel : Model<CellTypeT>
     using TileType = typename TileSetType::TileType;
     using BaseType = Model<CellType>;
     using CompatibilityArrayType = typename BaseType::CompatibilityArrayType;
+    using OptionsType = TiledModelOptions<CellType>;
 
-    TiledModel(const TileSetType& tiles, const TiledModelOptions& options) : 
-        BaseType(flattenPatterns(tiles), computeCompatibilities(tiles), options.seed, options.waveSize(), options.outputWrapping),
+    TiledModel(const TileSetType& tiles, const OptionsType& options) :
+        BaseType(flattenPatterns(tiles), computeCompatibilities(tiles), options.seed),
         m_options(options)
     {
         LOG_INFO(g_logger, "Created tiled model");
     }
 
-    const TiledModelOptions& options() const
+    const OptionsType& options() const
     {
         return m_options;
     }
 
 private:
-    TiledModelOptions m_options;
+    OptionsType m_options;
 
-    [[nodiscard]] Array2<CellType> decodeOutput() const override
+    [[nodiscard]] Array2<CellType> decodeOutput(Wave&& wave) const override
     {
-        const Array2<int> wave = this->wave().probeAll();
-        const Size2i waveSize = wave.size();
+        const Array2<int> waveValues = wave.probeAll();
+        const Size2i waveSize = waveValues.size();
 
         const int tileSize = this->patterns().element(0).size();
 
@@ -76,7 +80,7 @@ private:
         {
             for (int y = 0; y < waveSize.height; ++y)
             {
-                const auto& pattern = this->patterns().element(wave[x][y]);
+                const auto& pattern = this->patterns().element(waveValues[x][y]);
 
                 for (int xx = 0; xx < tileSize; ++xx)
                 {
@@ -89,6 +93,16 @@ private:
         }
 
         return out;
+    }
+
+    [[nodiscard]] Size2i waveSize() const override
+    {
+        return m_options.waveSize();
+    }
+
+    [[nodiscard]] WrappingMode outputWrapping() const override
+    {
+        return m_options.outputWrapping;
     }
 
     [[nodiscard]] static Patterns<CellType> flattenPatterns(const TileSetType& tiles)

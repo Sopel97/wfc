@@ -142,7 +142,7 @@ double elapsedSeconds(std::chrono::high_resolution_clock::time_point a, std::chr
 int main()
 {
     {
-        TiledModelOptions opt;
+        TiledModelOptions<ColorRGBi> opt;
         opt.outputSize = { 128, 128 };
         opt.outputWrapping = WrappingMode::All;
 
@@ -150,6 +150,7 @@ int main()
         TiledModel<ColorRGBi> m(makeCircuitTileSet(), opt);
         auto t1 = std::chrono::high_resolution_clock::now();
 
+        /*
         for (int i = 0; i < 32; ++i)
         {
             auto v = m.next();
@@ -163,6 +164,14 @@ int main()
                 LOG_ERROR(g_logger, "Contradiction");
             }
         }
+        */
+        int i = 0;
+        for (auto&& v : m.nextParallel(32))
+        {
+            //saveImage(v, std::string("sample_out/circuit/") + std::to_string(i) + ".png");
+            LOG_INFO(g_logger, "Successful");
+            ++i;
+        }
         auto t2 = std::chrono::high_resolution_clock::now();
 
         LOG_INFO(g_logger, "Init time: ", elapsedSeconds(t0, t1));
@@ -170,7 +179,7 @@ int main()
     }
 
     {
-        TiledModelOptions opt;
+        TiledModelOptions<ColorRGBi> opt;
         opt.outputSize = { 128, 128 };
         opt.outputWrapping = WrappingMode::All;
 
@@ -196,7 +205,7 @@ int main()
 
     {
         auto img = loadImage("sample_in/flowers.png");
-        OverlappingModelOptions opt{};
+        OverlappingModelOptions<ColorRGBi> opt{};
         opt.symmetries = D4Symmetries::All;
         opt.inputWrapping = WrappingMode::All;
         opt.outputWrapping = WrappingMode::All;

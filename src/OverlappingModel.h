@@ -15,8 +15,11 @@
 #include "Logger.h"
 #include "Model.h"
 
+template <typename CellTypeT>
 struct OverlappingModelOptions
 {
+    using SeedType = typename Model<CellTypeT>::ModelSeedType;
+
     static constexpr Size2i defaultOutputSize = { 32, 32 };
     static constexpr Size2i defaultStride = { 1, 1 };
     static constexpr int defaultPatternSize = 3;
@@ -27,10 +30,10 @@ struct OverlappingModelOptions
     int patternSize; // pattern must be a square
     Size2i outputSize;
 
-    // how far apart are wave grid points. {1,1} means that it's as dense as possible
+    // how far apart are waveValues grid points. {1,1} means that it's as dense as possible
     // increasing it speeds up observation process but may produce more artifacts
     Size2i stride;
-    std::uint64_t seed;
+    SeedType seed;
 
     OverlappingModelOptions() :
         inputWrapping(WrappingMode::None),
@@ -102,27 +105,28 @@ struct OverlappingModel : Model<CellTypeT>
     using CellType = CellTypeT;
     using BaseType = Model<CellType>;
     using CompatibilityArrayType = typename BaseType::CompatibilityArrayType;
+    using OptionsType = OverlappingModelOptions<CellType>;
 
-    OverlappingModel(const Array2<CellType>& input, const OverlappingModelOptions& options) :
+    OverlappingModel(const Array2<CellType>& input, const OptionsType& options) :
         // let's hope the compiler will call gatherPatterns only once
-        BaseType(gatherPatterns(input, options), computeCompatibilities(input, options), options.seed, options.waveSize(), options.outputWrapping),
+        BaseType(gatherPatterns(input, options), computeCompatibilities(input, options), options.seed),
         m_options(options)
     {
         LOG_INFO(g_logger, "Created overlapping model");
     }
 
-    const OverlappingModelOptions& options() const
+    const OptionsType& options() const
     {
         return m_options;
     }
 
 private:
-    OverlappingModelOptions m_options;
+    OptionsType m_options;
 
-    [[nodiscard]] Array2<CellType> decodeOutput() const override
+    [[nodiscard]] Array2<CellType> decodeOutput(Wave&& wave) const override
     {
-        const Array2<int> wave = this->wave().probeAll();
-        const Size2i waveSize = wave.size();
+        const Array2<int> waveValues = wave.probeAll();
+        const Size2i waveSize = waveValues.size();
 
         auto [sx, sy] = m_options.stride;
 
@@ -133,7 +137,7 @@ private:
         {
             for (int y = 0; y < waveSize.height; ++y)
             {
-                const auto& pattern = this->patterns().element(wave[x][y]);
+                const auto& pattern = this->patterns().element(waveValues[x][y]);
                 for (int xx = 0; xx < sx; ++xx)
                 {
                     for (int yy = 0; yy < sy; ++yy)
@@ -151,7 +155,7 @@ private:
             {
                 for (int y = 0; y < waveSize.height; ++y)
                 {
-                    const auto& pattern = this->patterns().element(wave[waveSize.width - 1][y]);
+                    const auto& pattern = this->patterns().element(waveValues[waveSize.width - 1][y]);
                     for (int yy = 0; yy < sy; ++yy)
                     {
                         out[waveSize.width * sx + dx - sx][y * sy + yy] = pattern[dx][yy];
@@ -165,7 +169,7 @@ private:
             // there are `m_options.patternSize - 1` rows left on the bottom
             for (int x = 0; x < waveSize.width; ++x)
             {
-                const auto& pattern = this->patterns().element(wave[x][waveSize.height - 1]);
+                const auto& pattern = this->patterns().element(waveValues[x][waveSize.height - 1]);
                 for (int dy = sy; dy < m_options.patternSize; ++dy)
                 {
                     for (int xx = 0; xx < sx; ++xx)
@@ -179,7 +183,7 @@ private:
         if (m_options.outputWrapping == WrappingMode::None)
         {
             // fill the corner
-            const auto& pattern = this->patterns().element(wave[waveSize.width - 1][waveSize.height - 1]);
+            const auto& pattern = this->patterns().element(waveValues[waveSize.width - 1][waveSize.height - 1]);
             for (int dx = sx; dx < m_options.patternSize; ++dx)
             {
                 for (int dy = sy; dy < m_options.patternSize; ++dy)
@@ -192,8 +196,18 @@ private:
         return out;
     }
 
+    [[nodiscard]] Size2i waveSize() const override
+    {
+        return m_options.waveSize();
+    }
+
+    [[nodiscard]] WrappingMode outputWrapping() const override
+    {
+        return m_options.outputWrapping;
+    }
+
     // precomputed pattern adjacency compatibilities using overlapEqualWhenOffset
-    [[nodiscard]] static CompatibilityArrayType computeCompatibilities(const Array2<CellType>& input, const OverlappingModelOptions& options)
+    [[nodiscard]] static CompatibilityArrayType computeCompatibilities(const Array2<CellType>& input, const OptionsType& options)
     {
         const auto patterns = gatherPatterns(input, options);
 
@@ -229,7 +243,7 @@ private:
         return compatibilities;
     }
 
-    [[nodiscard]] static Patterns<CellType> gatherPatterns(const Array2<CellType>& input, const OverlappingModelOptions& options)
+    [[nodiscard]] static Patterns<CellType> gatherPatterns(const Array2<CellType>& input, const OptionsType& options)
     {
         const Size2i inputSize = input.size();
         const int patternSize = options.patternSize;
