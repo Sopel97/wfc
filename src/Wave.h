@@ -2,23 +2,22 @@
 
 #include <algorithm>
 #include <cmath>
+#include <execution>
 #include <iterator>
 #include <optional>
 #include <queue>
 #include <random>
-#include <execution>
 
 #include "lib/pcg_random.hpp"
 
-#include "Algorithm.h"
 #include "Array2.h"
 #include "Array3.h"
 #include "Direction.h"
-#include "NormalizedHistogram.h"
-#include "UpdatablePriorityQueue.h"
 #include "Logger.h"
-#include "Util.h"
+#include "NormalizedHistogram.h"
 #include "Span.h"
+#include "UpdatablePriorityQueue.h"
+#include "Util.h"
 
 // INFO: const sometimes ommited with structured bindings due to clang bug
 //       https://bugs.llvm.org/show_bug.cgi?id=33236
@@ -135,7 +134,7 @@ private:
 
     std::vector<int> m_pendingMemoUpdates;
 
-    Array3<ByDirection<int>> initNumCompatibile() const
+    [[nodiscard]] Array3<ByDirection<int>> initNumCompatibile() const
     {
         /*const*/ auto [width, height] = size();
         const int ne = numElements();
@@ -154,7 +153,7 @@ private:
         return res;
     }
 
-    auto randomNoiseGenerator(float max)
+    [[nodiscard]] auto randomNoiseGenerator(float max)
     {
         auto dNoise = [scale = max * (1.0f / rngMax), this]() {
             return m_rng() * scale;

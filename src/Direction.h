@@ -3,8 +3,8 @@
 #include <array>
 #include <cstdint>
 
-#include "Enum.h"
 #include "Coords2.h"
+#include "Enum.h"
 #include "Util.h"
 
 enum struct Direction : std::uint8_t

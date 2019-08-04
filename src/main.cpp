@@ -166,7 +166,7 @@ int main()
         }
         */
         int i = 0;
-        for (auto&& v : m.nextParallel(32))
+        for (auto&& v : m.tryNextN(std::execution::par, 32))
         {
             //saveImage(v, std::string("sample_out/circuit/") + std::to_string(i) + ".png");
             LOG_INFO(g_logger, "Successful");

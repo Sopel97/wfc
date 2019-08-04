@@ -1,6 +1,9 @@
 #pragma once
 
+#include <functional>
+#include <iterator>
 #include <set>
+#include <utility>
 
 template <typename T, typename CompT = std::less<>>
 struct UpdatablePriorityQueue
@@ -16,17 +19,17 @@ struct UpdatablePriorityQueue
     }
 
     template <typename... ArgsTs>
-    iterator emplace(ArgsTs&&... args)
+    [[nodiscard]] iterator emplace(ArgsTs&&... args)
     {
         return m_values.emplace(std::forward<ArgsTs>(args)...);
     }
 
-    iterator push(const T& values)
+    [[nodiscard]] iterator push(const T& values)
     {
         return m_values.emplace(values);
     }
 
-    iterator push(T&& values)
+    [[nodiscard]] iterator push(T&& values)
     {
         return m_values.emplace(std::move(values));
     }
@@ -37,46 +40,46 @@ struct UpdatablePriorityQueue
     }
 
     template <typename FuncT>
-    iterator update(iterator iter, FuncT&& func)
+    [[nodiscard]] iterator update(iterator iter, FuncT&& func)
     {
         auto node = m_values.extract(iter);
         std::forward<FuncT>(func)(node.value());
         return m_values.insert(std::move(node));
     }
 
-    iterator update(iterator iter, const T& newValue)
+    [[nodiscard]] iterator update(iterator iter, const T& newValue)
     {
         return update(iter, T(newValue));
     }
 
-    iterator update(iterator iter, T&& newValue)
+    [[nodiscard]] iterator update(iterator iter, T&& newValue)
     {
         auto node = m_values.extract(iter);
         node.value() = std::move(newValue);
         return m_values.insert(std::move(node));
     }
 
-    iterator begin()
+    [[nodiscard]] iterator begin()
     {
         return m_values.begin();
     }
 
-    iterator end()
+    [[nodiscard]] iterator end()
     {
         return m_values.end();
     }
 
-    const_iterator begin() const
+    [[nodiscard]] const_iterator begin() const
     {
         return m_values.begin();
     }
 
-    const_iterator end() const
+    [[nodiscard]] const_iterator end() const
     {
         return m_values.end();
     }
 
-    const T& top() const
+    [[nodiscard]] const T& top() const
     {
         return *begin();
     }
@@ -86,7 +89,7 @@ struct UpdatablePriorityQueue
         erase(begin());
     }
 
-    bool empty() const
+    [[nodiscard]] bool empty() const
     {
         return m_values.empty();
     }

@@ -4,9 +4,9 @@
 #include <memory>
 
 #include "Coords2.h"
+#include "D4Symmetry.h"
 #include "Size2.h"
 #include "SmallVector.h"
-#include "D4Symmetry.h"
 #include "WrappingMode.h"
 
 template <typename T>

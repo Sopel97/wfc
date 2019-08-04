@@ -1,23 +1,23 @@
 #pragma once
 
-#include <array>
-#include <map>
-#include <vector>
-#include <utility>
-#include <iterator>
 #include <algorithm>
-#include <random>
+#include <array>
 #include <future>
+#include <iterator>
+#include <map>
+#include <random>
+#include <utility>
+#include <vector>
 
 #include "Array2.h"
+#include "D4Symmetry.h"
+#include "Direction.h"
+#include "Logger.h"
 #include "NormalizedHistogram.h"
 #include "Size2.h"
 #include "SmallVector.h"
-#include "D4Symmetry.h"
-#include "WrappingMode.h"
-#include "Logger.h"
 #include "Wave.h"
-#include "Direction.h"
+#include "WrappingMode.h"
 
 template <typename CellTypeT>
 struct Model
@@ -34,12 +34,12 @@ struct Model
     Model& operator=(Model&&) = default;
     ~Model() = default;
 
-    std::optional<Array2<CellType>> next()
+    [[nodiscard]] std::optional<Array2<CellType>> next()
     {
         return next(m_rng());
     }
 
-    std::optional<Array2<CellType>> next(WaveSeedType seed)
+    [[nodiscard]] std::optional<Array2<CellType>> next(WaveSeedType seed)
     {
         Wave wave(m_compatibile, m_rng(), this->waveSize(), m_patterns, this->outputWrapping());
 
@@ -66,13 +66,13 @@ struct Model
         }
     }
 
-    // does `parallelism` waves in parallel and returns successful tries
-    // so may return less elements than `parallelism`.
+    // does `tries` waves (in parallel) and returns successful tries
+    // so may return less elements than `tries`.
     // uses std::async for thread scheduling
-    std::vector<Array2<CellType>> nextParallel(int parallelism)
+    [[nodiscard]] std::vector<Array2<CellType>> tryNextN(std::execution::parallel_policy, int tries)
     {
         std::vector<std::future<std::optional<Array2<CellType>>>> futures;
-        for (int i = 0; i < parallelism; ++i)
+        for (int i = 0; i < tries; ++i)
         {
             futures.emplace_back(std::async(std::launch::async, [seed = m_rng(), this]() { return next(seed); }));
         }
@@ -92,12 +92,12 @@ struct Model
     // TODO: parallel version that returns exactly n results
     //       and uses a single (lock free) queue to schedule work
 
-    const Patterns<CellType>& patterns() const
+    [[nodiscard]] const Patterns<CellType>& patterns() const
     {
         return m_patterns;
     }
 
-    const CompatibilityArrayType& compatibility() const
+    [[nodiscard]] const CompatibilityArrayType& compatibility() const
     {
         return m_compatibile;
     }
@@ -112,7 +112,9 @@ protected:
     }
 
     [[nodiscard]] virtual Array2<CellType> decodeOutput(Wave&& wave) const = 0;
+
     [[nodiscard]] virtual Size2i waveSize() const = 0;
+
     [[nodiscard]] virtual WrappingMode outputWrapping() const = 0;
 
 private:

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <iostream>
+#include <array>
 #include <chrono>
+#include <iostream>
 #include <string>
 #include <string_view>
-#include <array>
 
 // member functions should not be called directly
 // use LOG_* macros
@@ -50,22 +50,22 @@ struct Logger
         m_stream = &s;
     }
 
-    static constexpr bool shouldLog(Level level)
+    [[nodiscard]] static constexpr bool shouldLog(Level level)
     {
         return enabled && level >= minLevel;
     }
 
-    static std::string footer(Level level)
+    [[nodiscard]] static std::string footer(Level level)
     {
         return "[" + std::to_string(time()) + " " + levelToString(level) + "] ";
     }
 
-    static std::uint64_t time()
+    [[nodiscard]] static std::uint64_t time()
     {
         return std::chrono::steady_clock::now().time_since_epoch().count();
     }
 
-    static constexpr const char* levelToString(Level level)
+    [[nodiscard]] static constexpr const char* levelToString(Level level)
     {
         constexpr std::array<const char*, 7> v{
             "NONE",

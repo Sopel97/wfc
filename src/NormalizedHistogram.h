@@ -21,27 +21,27 @@ struct NormalizedFrequencies
     NormalizedFrequencies& operator=(NormalizedFrequencies&&) = default;
     ~NormalizedFrequencies() = default;
 
-    const FrequenciesType& frequencies() const
+    [[nodiscard]] const FrequenciesType& frequencies() const
     {
         return m_frequencies;
     }
 
-    const FrequencyType& frequency(int i) const
+    [[nodiscard]] const FrequencyType& frequency(int i) const
     {
         return m_frequencies[i];
     }
 
-    const FrequenciesType& plogps() const
+    [[nodiscard]] const FrequenciesType& plogps() const
     {
         return m_plogps;
     }
 
-    const FrequencyType& plogp(int i) const
+    [[nodiscard]] const FrequencyType& plogp(int i) const
     {
         return m_plogps[i];
     }
 
-    int size() const
+    [[nodiscard]] int size() const
     {
         return static_cast<int>(m_frequencies.size());
     }
@@ -100,12 +100,12 @@ struct NormalizedHistogram : public NormalizedFrequencies
         }
     }
 
-    const ElementType& element(int i) const
+    [[nodiscard]] const ElementType& element(int i) const
     {
         return m_elements[i];
     }
 
-    const ElementsType& elements() const
+    [[nodiscard]] const ElementsType& elements() const
     {
         return m_elements;
     }

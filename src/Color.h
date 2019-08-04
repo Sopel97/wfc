@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cstdint>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include <cstdint>
 
 struct ColorRGBf
 {
@@ -133,14 +133,16 @@ struct ColorRGBi
     constexpr ColorRGBi() noexcept :
         r{},
         g{},
-        b{}
+        b{},
+        _pad{}
     {
     }
 
     constexpr ColorRGBi(std::uint8_t r, std::uint8_t g, std::uint8_t b) noexcept :
         r(r),
         g(g),
-        b(b)
+        b(b),
+        _pad{}
     {
 
     }
@@ -148,7 +150,8 @@ struct ColorRGBi
     explicit ColorRGBi(const ColorRGBf& other) noexcept :
         r(static_cast<std::uint8_t>(std::clamp(other.r, 0.0f, 1.0f) * 255.0f + 0.5f)),
         g(static_cast<std::uint8_t>(std::clamp(other.g, 0.0f, 1.0f) * 255.0f + 0.5f)),
-        b(static_cast<std::uint8_t>(std::clamp(other.b, 0.0f, 1.0f) * 255.0f + 0.5f))
+        b(static_cast<std::uint8_t>(std::clamp(other.b, 0.0f, 1.0f) * 255.0f + 0.5f)),
+        _pad{}
     {
 
     }
@@ -176,5 +179,5 @@ struct ColorRGBi
         return !operator==(lhs, rhs);
     }
 
-    std::uint8_t r, g, b;
+    std::uint8_t r, g, b, _pad;
 };

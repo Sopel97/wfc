@@ -1,31 +1,32 @@
 #pragma once
 
-#include <vector>
-#include <utility>
 #include <atomic>
+#include <cassert>
 #include <set>
 #include <tuple>
+#include <utility>
+#include <vector>
 
 #include "Array2.h"
 #include "D4Symmetry.h"
-#include "SmallVector.h"
 #include "NormalizedHistogram.h"
+#include "SmallVector.h"
 
-struct TileConnectivity
+struct TileSides
 {
     using SideIdType = int;
 
     ByDirection<SideIdType> sideId;
     ByDirection<SideIdType> mirroredSideId;
 
-    TileConnectivity(ByDirection<SideIdType> sideId) :
+    TileSides(ByDirection<SideIdType> sideId) :
         sideId(sideId),
         mirroredSideId(sideId)
     {
 
     }
 
-    TileConnectivity(ByDirection<SideIdType> sideId, ByDirection<SideIdType> mirroredSideId) :
+    TileSides(ByDirection<SideIdType> sideId, ByDirection<SideIdType> mirroredSideId) :
         sideId(sideId),
         mirroredSideId(mirroredSideId)
     {
@@ -41,7 +42,7 @@ struct Tile
 
     static inline std::atomic<IdType> nextId = 0;
 
-    Tile(PatternType&& basePattern, const TileConnectivity& connectivity, D4SymmetriesClosure symmetries, float weight) :
+    Tile(PatternType&& basePattern, const TileSides& connectivity, D4SymmetriesClosure symmetries, float weight) :
         m_distinctPatterns{},
         m_connectivity(connectivity),
         m_symmetries(symmetries),
@@ -81,32 +82,32 @@ struct Tile
         });
     }
 
-    int numDistinct() const
+    [[nodiscard]] int numDistinct() const
     {
         return m_distinctPatterns.size();
     }
 
-    float weight() const
+    [[nodiscard]] float weight() const
     {
         return m_weight;
     }
 
-    PatternType& operator[](D4Symmetry s)
+    [[nodiscard]] PatternType& operator[](D4Symmetry s)
     {
         return m_distinctPatterns[indexOf(s)];
     }
 
-    const PatternType& operator[](D4Symmetry s) const
+    [[nodiscard]] const PatternType& operator[](D4Symmetry s) const
     {
         return m_distinctPatterns[indexOf(s)];
     }
 
-    const TileConnectivity& connectivity() const
+    [[nodiscard]] const TileSides& connectivity() const
     {
         return m_connectivity;
     }
 
-    const int sideId(Direction side, D4Symmetry transform, bool mirror) const
+    [[nodiscard]] const int sideId(Direction side, D4Symmetry transform, bool mirror) const
     {
         // we need to know to which original side each transformed side
         // corresponds to
@@ -115,7 +116,7 @@ struct Tile
         return isMirror ? m_connectivity.mirroredSideId[originalSide] : m_connectivity.sideId[originalSide]; 
     }
 
-    IdType id() const
+    [[nodiscard]] IdType id() const
     {
         return m_id;
     }
@@ -127,13 +128,13 @@ struct Tile
 
 private:
     SmallVector<PatternType, 8> m_distinctPatterns;
-    TileConnectivity m_connectivity;
+    TileSides m_connectivity;
     D4SymmetriesClosure m_symmetries;
     D4Symmetries m_missingSymmetries; // symmetries that produce the m_distinctPatterns
     float m_weight;
     IdType m_id;
 
-    int indexOf(D4Symmetry symmetry) const
+    [[nodiscard]] int indexOf(D4Symmetry symmetry) const
     {
         if (symmetry == D4Symmetry::Rotation0)
         {
@@ -164,8 +165,7 @@ private:
             }
         }
 
-        // shouldn't happen?
-        return 0;
+        assert(false);
     }
 };
 
@@ -176,7 +176,7 @@ struct TileSet
     using TileType = Tile<CellType>;
     using TileIdType = typename TileType::IdType;
     using TileArrayType = std::vector<TileType>;
-    using SideIdType = typename TileConnectivity::SideIdType;
+    using SideIdType = typename TileSides::SideIdType;
 
     TileSet() = default;
 
@@ -187,27 +187,27 @@ struct TileSet
         return size() - 1;
     }
 
-    TileType& operator[](int i)
+    [[nodiscard]] TileType& operator[](int i)
     {
         return m_tiles[i];
     }
 
-    const TileType& operator[](int i) const
+    [[nodiscard]] const TileType& operator[](int i) const
     {
         return m_tiles[i];
     }
 
-    int size() const
+    [[nodiscard]] int size() const
     {
         return static_cast<int>(m_tiles.size());
     }
 
-    const TileArrayType& tiles() const &
+    [[nodiscard]] const TileArrayType& tiles() const &
     {
         return m_tiles;
     }
 
-    TileArrayType&& tiles() &&
+    [[nodiscard]] TileArrayType&& tiles() &&
     {
         return std::move(m_tiles);
     }
@@ -221,9 +221,9 @@ struct TileSet
         }
     }
 
-    bool areIncompatibile(TileIdType id1, TileIdType id2, SideIdType s) const
+    [[nodiscard]] bool areCompatibile(TileIdType id1, TileIdType id2, SideIdType s) const
     {
-        return m_incompatibilities.count({ id1, id2, s }) > 0;
+        return m_incompatibilities.count({ id1, id2, s }) == 0;
     }
 
 private:

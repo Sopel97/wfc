@@ -2,19 +2,19 @@
 
 #include <array>
 #include <map>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "lib/pcg_random.hpp"
 
 #include "Array2.h"
+#include "D4Symmetry.h"
+#include "Logger.h"
+#include "Model.h"
 #include "NormalizedHistogram.h"
 #include "Size2.h"
 #include "SmallVector.h"
-#include "D4Symmetry.h"
 #include "WrappingMode.h"
-#include "Logger.h"
-#include "Model.h"
 
 template <typename CellTypeT>
 struct TiledModelOptions
@@ -59,7 +59,7 @@ struct TiledModel : Model<CellTypeT>
         LOG_INFO(g_logger, "Created tiled model");
     }
 
-    const OptionsType& options() const
+    [[nodiscard]] const OptionsType& options() const
     {
         return m_options;
     }
@@ -113,7 +113,7 @@ private:
         {
             tile.forEachDistinct([&patterns, &tile](const auto& pattern, D4Symmetry s) {
                 patterns.emplace_back(pattern, tile.weight());
-                });
+            });
         }
 
         LOG_INFO(g_logger, "Gathered ", patterns.size(), " patterns");
@@ -178,6 +178,6 @@ private:
         const int firstSideId = firstTile.sideId(connectionDir, firstTransform, false);
         const int secondSideId = secondTile.sideId(oppositeTo(connectionDir), secondTransform, true);
 
-        return firstSideId == secondSideId && !tiles.areIncompatibile(firstTile.id(), secondTile.id(), firstSideId);
+        return firstSideId == secondSideId && tiles.areCompatibile(firstTile.id(), secondTile.id(), firstSideId);
     }
 };

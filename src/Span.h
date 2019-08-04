@@ -18,27 +18,27 @@ struct IterSpan
     {
     }
 
-    IterT begin() const
+    [[nodiscard]] IterT begin() const
     {
         return m_begin;
     }
 
-    IterT end() const
+    [[nodiscard]] IterT end() const
     {
         return m_end;
     }
 
-    int size() const
+    [[nodiscard]] int size() const
     {
         return static_cast<int>(std::distance(m_begin, m_end));
     }
 
-    decltype(auto) operator[](int i)
+    [[nodiscard]] decltype(auto) operator[](int i)
     {
         return *(m_begin + i);
     }
 
-    decltype(auto) operator[](int i) const
+    [[nodiscard]] decltype(auto) operator[](int i) const
     {
         return *(m_begin + i);
     }

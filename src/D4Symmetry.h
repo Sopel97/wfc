@@ -1,11 +1,12 @@
 #pragma once
 
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <type_traits>
 
-#include "Enum.h"
 #include "Direction.h"
+#include "Enum.h"
 
 // http://facstaff.cbu.edu/wschrein/media/M402%20Notes/M402C1.pdf
 
@@ -542,7 +543,7 @@ struct D4SymmetryHelper
         case 'X':
             return D4SymmetriesClosure::All;
         default:
-            return D4SymmetriesClosure::AllRotations; // don't know what to do with it as there is no appropriate character
+            assert(false);
         }
     }
 };

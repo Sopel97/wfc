@@ -1,5 +1,8 @@
 #pragma once
 
+#include <iterator>
+#include <type_traits>
+
 template <typename T, int N>
 struct SmallVector
 {
@@ -9,7 +12,6 @@ private:
     using StorageType = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
 
 public:
-
     using value_type = T;
     using size_type = int;
     using difference_type = int;

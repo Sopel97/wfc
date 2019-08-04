@@ -7,13 +7,13 @@
 #include "lib/pcg_random.hpp"
 
 #include "Array2.h"
+#include "D4Symmetry.h"
+#include "Logger.h"
+#include "Model.h"
 #include "NormalizedHistogram.h"
 #include "Size2.h"
 #include "SmallVector.h"
-#include "D4Symmetry.h"
 #include "WrappingMode.h"
-#include "Logger.h"
-#include "Model.h"
 
 template <typename CellTypeT>
 struct OverlappingModelOptions
@@ -115,7 +115,7 @@ struct OverlappingModel : Model<CellTypeT>
         LOG_INFO(g_logger, "Created overlapping model");
     }
 
-    const OptionsType& options() const
+    [[nodiscard]] const OptionsType& options() const
     {
         return m_options;
     }
