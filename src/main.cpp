@@ -20,6 +20,7 @@
 #include "D4Symmetry.h"
 #include "TiledModel.h"
 #include "Logger.h"
+#include "UpdatablePriorityQueue.h"
 
 static inline Array2<ColorRGBi> loadImage(const std::string& path)
 {
@@ -139,8 +140,49 @@ double elapsedSeconds(std::chrono::high_resolution_clock::time_point a, std::chr
     return (b - a).count() * 1e-9;
 }
 
+void testQueue()
+{
+    UpdatablePriorityQueue<int> q(16); 
+    
+    auto print = [](auto& val) { std::cout << val << ' '; };
+
+    q.push(7);
+    q.emplace(1);
+    q.push(6);
+    q.push(3);
+    q.push(0);
+    auto a = q.push(8);
+    auto b = q.push(9);
+    q.emplace(4);
+    q.push(5);
+    q.push(2);
+
+    q.forEach(print);
+    std::cout << '\n';
+
+    q.erase(a);
+
+    q.push(321);
+    q.update(b, [](auto& v) { v = 123; });
+
+    q.forEach(print);
+    std::cout << '\n';
+
+    std::cout << q.top() << '\n';
+    q.pop();
+    std::cout << q.top() << '\n';
+
+    q.forEach(print);
+    std::cout << '\n';
+
+    assert(q.size() == 9);
+}
+
 int main()
 {
+    //testQueue();
+    //return 0;
+
     {
         TiledModelOptions<ColorRGBi> opt;
         opt.outputSize = { 128, 128 };
@@ -169,9 +211,9 @@ int main()
         for (auto&& v : m.tryNextN(std::execution::par, 32))
         {
             //saveImage(v, std::string("sample_out/circuit/") + std::to_string(i) + ".png");
-            LOG_INFO(g_logger, "Successful");
             ++i;
         }
+        LOG_INFO(g_logger, "Successful: ", i);
         auto t2 = std::chrono::high_resolution_clock::now();
 
         LOG_INFO(g_logger, "Init time: ", elapsedSeconds(t0, t1));

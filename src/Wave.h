@@ -22,8 +22,9 @@
 // INFO: const sometimes ommited with structured bindings due to clang bug
 //       https://bugs.llvm.org/show_bug.cgi?id=33236
 
-// current implementation is not optimized, but has potential
-//#define USE_UPDATABLE_PRIORITY_QUEUE
+// hard to tell which one is better.
+// using updatable priority queue should have more deterministic memory consumption
+#define USE_UPDATABLE_PRIORITY_QUEUE
 
 struct Wave
 {
@@ -52,12 +53,11 @@ private:
 
 #if defined(USE_UPDATABLE_PRIORITY_QUEUE)
     using EntropyQueueType = UpdatablePriorityQueue<EntropyQueueEntry>;
-    using EntropyQueueIterator = typename EntropyQueueType::iterator;
+    using EntropyQueueNodeHandle = typename EntropyQueueType::NodeHandle;
+    static constexpr EntropyQueueNodeHandle invalidNodeHandle{};
 
     struct MemoEntry
     {
-        using EntropyQueueType = typename EntropyQueueType::iterator;
-
         // sum { p'(element) * log(p'(element)) }
         float plogpSum;
 
@@ -70,7 +70,7 @@ private:
 
         bool needsUpdate = false;
 
-        EntropyQueueType iter = {};
+        EntropyQueueNodeHandle iter = invalidNodeHandle;
     };
 #else
     using EntropyQueueType = std::priority_queue<EntropyQueueEntry, std::vector<EntropyQueueEntry>, std::greater<>>;
@@ -128,7 +128,7 @@ private:
     Array3<ByDirection<int>> m_numCompatibile;
 
     // each elements holds {x, y, elementId}
-    std::queue<Coords3i> m_propagationQueue;
+    std::vector<Coords3i> m_propagationQueue;
 
     EntropyQueueType m_entropyQueue;
 
@@ -187,7 +187,10 @@ public:
         m_plogp(freq.plogps()),
         m_memo(size),
         m_canBePlaced(Size3i(size, freq.size()), true),
-        m_numCompatibile(initNumCompatibile())
+        m_numCompatibile(initNumCompatibile()),
+#if defined(USE_UPDATABLE_PRIORITY_QUEUE)
+        m_entropyQueue(size.total())
+#endif
     {
         for (auto&& plogp : m_plogp)
         {
@@ -213,12 +216,12 @@ public:
 
         std::fill(std::begin(m_memo), std::end(m_memo), m_initEntry);
 
-        LOG_INFO(g_logger, "Created wave");
-        LOG_INFO(g_logger, "baseEntropy = ", baseEntropy);
-        LOG_INFO(g_logger, "numAvailableElements = ", freq.size());
-        LOG_INFO(g_logger, "entropy = ", -baseEntropy);
-        LOG_INFO(g_logger, "noiseMax = ", m_noiseMax);
-        LOG_INFO(g_logger, "size = (", m_size.width, ", ", m_size.height, ")");
+        LOG_DEBUG(g_logger, "Created wave");
+        LOG_DEBUG(g_logger, "baseEntropy = ", baseEntropy);
+        LOG_DEBUG(g_logger, "numAvailableElements = ", freq.size());
+        LOG_DEBUG(g_logger, "entropy = ", -baseEntropy);
+        LOG_DEBUG(g_logger, "noiseMax = ", m_noiseMax);
+        LOG_DEBUG(g_logger, "size = (", m_size.width, ", ", m_size.height, ")");
 
         for (int i = 0; i < m_memo.size().total(); ++i)
         {
@@ -248,7 +251,11 @@ public:
             e.entropy += dNoise();
         }
 
+#if defined(USE_UPDATABLE_PRIORITY_QUEUE)
+        m_entropyQueue = EntropyQueueType(m_size.total());
+#else
         m_entropyQueue = {};
+#endif
         for (int i = 0; i < m_memo.size().total(); ++i)
         {
 #if defined(USE_UPDATABLE_PRIORITY_QUEUE)
@@ -420,17 +427,17 @@ public:
             }
 
 #if defined(USE_UPDATABLE_PRIORITY_QUEUE)
-            if (memo.iter != EntropyQueueIterator{})
+            if (memo.iter != invalidNodeHandle)
             {
                 if (memo.numAvailableElements <= 1)
                 {
                     m_entropyQueue.erase(memo.iter);
-                    memo.iter = {};
+                    memo.iter = invalidNodeHandle;
                 }
                 else
                 {
                     memo.entropy = util::approximateLog(memo.pSum) - memo.plogpSum / memo.pSum + randomNoiseGenerator(m_noiseMax)();
-                    memo.iter = m_entropyQueue.update(memo.iter, [entropy = memo.entropy](EntropyQueueEntry& e) {e.entropy = entropy; });
+                    m_entropyQueue.update(memo.iter, [entropy = memo.entropy](EntropyQueueEntry& e) {e.entropy = entropy; });
                 }
             }
 #else
@@ -458,7 +465,7 @@ private:
         canBePlaced = false;
 
         m_numCompatibile.data()[idx] = {};
-        m_propagationQueue.emplace(pos, elementId);
+        m_propagationQueue.emplace_back(pos, elementId);
 
         const int memoIdx = m_memo.getFlatIndex(pos);
         auto& memo = m_memo.data()[memoIdx];
@@ -486,7 +493,7 @@ private:
             if (canBePlaced)
             {
                 m_numCompatibile.data()[idx] = {};
-                m_propagationQueue.emplace(pos, elementId);
+                m_propagationQueue.emplace_back(pos, elementId);
                 canBePlaced = false;
             }
         }
@@ -501,10 +508,10 @@ private:
         }
 #if defined(USE_UPDATABLE_PRIORITY_QUEUE)
         // we don't need to change entropy since the values doesn't matter anymore anyway
-        if (memo.iter != EntropyQueueIterator{})
+        if (memo.iter != invalidNodeHandle)
         {
             m_entropyQueue.erase(memo.iter);
-            memo.iter = {};
+            memo.iter = invalidNodeHandle;
         }
 #endif
     }
@@ -514,8 +521,8 @@ private:
     {
         while (!m_propagationQueue.empty())
         {
-            /*const*/ auto [x, y, elementId] = m_propagationQueue.front();
-            m_propagationQueue.pop();
+            /*const*/ auto [x, y, elementId] = m_propagationQueue.back();
+            m_propagationQueue.pop_back();
 
             applyOffsetAndPropagate<WrapV, Direction::North>(x, y, elementId);
             applyOffsetAndPropagate<WrapV, Direction::East>(x, y, elementId);
