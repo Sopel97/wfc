@@ -46,11 +46,14 @@ struct Tile
 
     static inline std::atomic<IdType> nextId = 0;
 
-    Tile(PatternType&& basePattern, const TileSides& connectivity, D4SymmetriesClosure symmetries, float weight) :
+    // allowedSymmetries controls which distinct images are generated
+    // for example if allowedSymmetries == None then only original
+    // image will be used no matter what the symmetry of the image is
+    Tile(PatternType&& basePattern, const TileSides& connectivity, D4SymmetriesClosure symmetries, float weight, D4Symmetries allowedSymmetries = D4Symmetries::All) :
         m_distinctPatterns{},
         m_connectivity(connectivity),
         m_symmetries(symmetries),
-        m_missingSymmetries(missing(symmetries)),
+        m_missingSymmetries(missing(symmetries) & allowedSymmetries),
         m_weight(weight),
         m_id(nextId++)
     {
@@ -175,7 +178,9 @@ private:
             }
         }
 
-        assert(false);
+        // if there are symmetry restrictions it may happen that
+        // some symmetrical images are not available
+        return -1;
     }
 };
 

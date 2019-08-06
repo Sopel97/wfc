@@ -315,6 +315,29 @@ TileSet<ColorRGBi> makeTerrainTileSet()
     return ts;
 }
 
+TileSet<ColorRGBi> makeWangTileSet()
+{
+    TileSet<ColorRGBi> ts;
+
+    enum {
+        r, g, b, w
+    };
+
+    const int bbwb = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/wang/bbwb.png").square(), { ByDirection<int>::nesw(b, b, w, b) }, D4SymmetryHelper::closureFromChar('T'), 1.0f, D4Symmetries::None));
+    const int brbg = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/wang/brbg.png").square(), { ByDirection<int>::nesw(b, r, b, g) }, D4SymmetryHelper::closureFromChar('C'), 1.0f, D4Symmetries::None));
+    const int brwr = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/wang/brwr.png").square(), { ByDirection<int>::nesw(b, r, w, r) }, D4SymmetryHelper::closureFromChar('C'), 1.0f, D4Symmetries::None));
+    const int bwbr = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/wang/bwbr.png").square(), { ByDirection<int>::nesw(b, w, b, r) }, D4SymmetryHelper::closureFromChar('T'), 1.0f, D4Symmetries::None));
+    const int ggbr = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/wang/ggbr.png").square(), { ByDirection<int>::nesw(g, g, b, r) }, D4SymmetryHelper::closureFromChar('P'), 1.0f, D4Symmetries::None));
+    const int rgbw = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/wang/rgbw.png").square(), { ByDirection<int>::nesw(r, g, b, w) }, D4SymmetryHelper::closureFromChar('P'), 1.0f, D4Symmetries::None));
+    const int rggg = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/wang/rggg.png").square(), { ByDirection<int>::nesw(r, g, g, g) }, D4SymmetryHelper::closureFromChar('T'), 1.0f, D4Symmetries::None));
+    const int rrrg = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/wang/rrrg.png").square(), { ByDirection<int>::nesw(r, r, r, g) }, D4SymmetryHelper::closureFromChar('C'), 1.0f, D4Symmetries::None));
+    const int rwrg = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/wang/rwrg.png").square(), { ByDirection<int>::nesw(r, w, r, g) }, D4SymmetryHelper::closureFromChar('C'), 1.0f, D4Symmetries::None));
+    const int wbrb = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/wang/wbrb.png").square(), { ByDirection<int>::nesw(w, b, r, b) }, D4SymmetryHelper::closureFromChar('C'), 1.0f, D4Symmetries::None));
+    const int wwrw = ts.emplace(Tile<ColorRGBi>(loadImage("sample_in/tiles/wang/wwrw.png").square(), { ByDirection<int>::nesw(w, w, r, w) }, D4SymmetryHelper::closureFromChar('T'), 1.0f, D4Symmetries::None));
+
+    return ts;
+}
+
 double elapsedSeconds(std::chrono::high_resolution_clock::time_point a, std::chrono::high_resolution_clock::time_point b)
 {
     return (b - a).count() * 1e-9;
@@ -405,6 +428,20 @@ std::chrono::nanoseconds generateAndSaveExamples()
     using OverlappingOpt = typename OverlappingModel<ColorRGBi>::OptionsType;
 
     auto duration = std::chrono::nanoseconds(0);
+
+    for (const auto& size : std::vector<Size2i>{ { 8, 8 }, { 16, 16 }, { 32, 32 }, { 64, 64 } })
+    {
+        duration += generateAndSave(
+            Tiled(
+                makeWangTileSet(),
+                TiledOpt()
+                .withOutputSize(size)
+                .withOutputWrapping(WrappingMode::None)
+            ),
+            32,
+            "examples_out/wang/" + toString(size)
+        );
+    }
 
     for (const auto& size : std::vector<Size2i>{ { 8, 8 }, { 16, 16 }, { 32, 32 }, { 64, 64 } })
     {
