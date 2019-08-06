@@ -32,14 +32,14 @@ struct Model
     Model(Model&&) = default;
     Model& operator=(const Model&) = delete;
     Model& operator=(Model&&) = default;
-    ~Model() = default;
+    virtual ~Model() = default;
 
-    [[nodiscard]] std::optional<Array2<CellType>> next()
+    [[nodiscard]] virtual std::optional<Array2<CellType>> next()
     {
         return next(m_rng());
     }
 
-    [[nodiscard]] std::optional<Array2<CellType>> next(WaveSeedType seed)
+    [[nodiscard]] virtual std::optional<Array2<CellType>> next(WaveSeedType seed)
     {
         Wave wave(m_compatibile, m_rng(), this->waveSize(), m_patterns, this->outputWrapping());
 
@@ -69,7 +69,7 @@ struct Model
     // does `tries` waves (in parallel) and returns successful tries
     // so may return less elements than `tries`.
     // uses std::async for thread scheduling
-    [[nodiscard]] std::vector<Array2<CellType>> tryNextN(std::execution::parallel_policy, int tries)
+    [[nodiscard]] virtual std::vector<Array2<CellType>> tryNextN(std::execution::parallel_policy, int tries)
     {
         std::vector<std::future<std::optional<Array2<CellType>>>> futures;
         for (int i = 0; i < tries; ++i)
@@ -92,12 +92,12 @@ struct Model
     // TODO: parallel version that returns exactly n results
     //       and uses a single (lock free) queue to schedule work
 
-    [[nodiscard]] const Patterns<CellType>& patterns() const
+    [[nodiscard]] virtual const Patterns<CellType>& patterns() const final
     {
         return m_patterns;
     }
 
-    [[nodiscard]] const CompatibilityArrayType& compatibility() const
+    [[nodiscard]] virtual const CompatibilityArrayType& compatibility() const final
     {
         return m_compatibile;
     }

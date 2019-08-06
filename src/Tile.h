@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <map>
 #include <set>
 #include <tuple>
 #include <utility>
@@ -17,7 +18,10 @@ struct TileSides
     using SideIdType = int;
 
     ByDirection<SideIdType> sideId;
-    ByDirection<SideIdType> mirroredSideId;
+
+    // side id as if the side's vertices were reversed
+    // so for example for north side as if D4Symmetry::FlipAboutVerticalAxis was applied
+    ByDirection<SideIdType> mirroredSideId; 
 
     TileSides(ByDirection<SideIdType> sideId) :
         sideId(sideId),
@@ -143,24 +147,30 @@ private:
         else if (contains(m_missingSymmetries, symmetry))
         {
             int i = 0;
-            for (D4Symmetry s : m_missingSymmetries)
+            for (D4Symmetry s : values<D4Symmetry>())
             {
-                ++i;
-                if (s == symmetry)
+                if (contains(m_missingSymmetries, s))
                 {
-                    return i;
+                    ++i;
+                    if (s == symmetry)
+                    {
+                        return i;
+                    }
                 }
             }
         }
         else
         {
             int i = 0;
-            for (D4Symmetry s : m_missingSymmetries)
+            for (D4Symmetry s : values<D4Symmetry>())
             {
-                ++i;
-                if (areEquivalentUnderSymmetries(m_symmetries, s, symmetry))
+                if (contains(m_missingSymmetries, s))
                 {
-                    return i;
+                    ++i;
+                    if (areEquivalentUnderSymmetries(m_symmetries, s, symmetry))
+                    {
+                        return i;
+                    }
                 }
             }
         }
@@ -180,10 +190,17 @@ struct TileSet
 
     TileSet() = default;
 
+    TileIdType emplace(const TileType& tile)
+    {
+        m_tiles.emplace_back(tile);
+        m_tiles.back().setId(size() - 1);
+        return size() - 1;
+    }
+
     TileIdType emplace(TileType&& tile)
     {
         m_tiles.emplace_back(std::move(tile));
-        tile.setId(size() - 1);
+        m_tiles.back().setId(size() - 1);
         return size() - 1;
     }
 
@@ -224,6 +241,29 @@ struct TileSet
     [[nodiscard]] bool areCompatibile(TileIdType id1, TileIdType id2, SideIdType s) const
     {
         return m_incompatibilities.count({ id1, id2, s }) == 0;
+    }
+
+    // returns a new tileset and id mapping from this to the new one
+    std::pair<TileSet, std::map<int, int>> subset(const std::set<int>& ids) const
+    {
+        TileSet newTileSet{};
+        std::map<int, int> mapping{};
+
+        for (const int id : ids)
+        {
+            const int newId = newTileSet.emplace(m_tiles[id]);
+            mapping[id] = newId;
+        }
+
+        for (const auto& [id1, id2, sideId] : m_incompatibilities)
+        {
+            if (ids.count(id1) > 0 && ids.count(id2) > 0)
+            {
+                newTileSet.makeIncompatibile(id1, id2, sideId);
+            }
+        }
+
+        return { std::move(newTileSet), std::move(mapping) };
     }
 
 private:

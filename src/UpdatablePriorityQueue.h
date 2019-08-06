@@ -10,6 +10,7 @@
 
 #include "Util.h"  
 
+// based on Scapegoat Tree
 template <typename T, typename CompT = std::less<>>
 struct UpdatablePriorityQueue : private CompT
 {

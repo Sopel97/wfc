@@ -77,6 +77,42 @@ struct OverlappingModelOptions
         };
     }
 
+    OverlappingModelOptions& withOutputSize(Size2i size)
+    {
+        outputSize = size;
+        return *this;
+    }
+
+    OverlappingModelOptions& withInputWrapping(WrappingMode mode)
+    {
+        inputWrapping = mode;
+        return *this;
+    }
+
+    OverlappingModelOptions& withOutputWrapping(WrappingMode mode)
+    {
+        outputWrapping = mode;
+        return *this;
+    }
+
+    OverlappingModelOptions& withSymmetries(D4Symmetries sym)
+    {
+        symmetries = sym;
+        return *this;
+    }
+
+    OverlappingModelOptions& withPatternSize(int size)
+    {
+        patternSize = size;
+        return *this;
+    }
+
+    OverlappingModelOptions& withStride(int size)
+    {
+        stride = size;
+        return *this;
+    }
+
 private:
     [[nodiscard]] constexpr static int ceilToMultiple(int v, int m)
     {

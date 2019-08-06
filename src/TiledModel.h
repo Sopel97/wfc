@@ -39,6 +39,18 @@ struct TiledModelOptions
     {
         return outputSize;
     }
+
+    TiledModelOptions& withOutputSize(Size2i size)
+    {
+        outputSize = size;
+        return *this;
+    }
+
+    TiledModelOptions& withOutputWrapping(WrappingMode mode)
+    {
+        outputWrapping = mode;
+        return *this;
+    }
 };
 
 template <typename CellTypeT>
