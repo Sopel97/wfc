@@ -29,6 +29,16 @@ struct Size2
         return width * height;
     }
 
+    [[nodiscard]] constexpr friend Size2 operator+(const Size2& lhs, const Size2& rhs) noexcept
+    {
+        return Size2(lhs.width + rhs.width, lhs.height + rhs.height);
+    }
+
+    [[nodiscard]] constexpr friend Size2 operator*(const Size2& lhs, const Size2& rhs) noexcept
+    {
+        return Size2(lhs.width * rhs.width, lhs.height * rhs.height);
+    }
+
     [[nodiscard]] constexpr friend Size2 operator*(const Size2& lhs, T n) noexcept
     {
         return Size2(lhs.width * n, lhs.height * n);

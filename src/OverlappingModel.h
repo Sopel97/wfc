@@ -29,6 +29,7 @@ struct OverlappingModelOptions
     D4Symmetries symmetries;
     int patternSize; // pattern must be a square
     Size2i outputSize;
+    bool equalFrequencies;
 
     // how far apart are waveValues grid points. {1,1} means that it's as dense as possible
     // increasing it speeds up observation process but may produce more artifacts
@@ -41,6 +42,7 @@ struct OverlappingModelOptions
         symmetries(D4Symmetries::None),
         patternSize(defaultPatternSize),
         outputSize(defaultOutputSize),
+        equalFrequencies(false),
         stride(defaultStride),
         seed(123)
     {
@@ -107,9 +109,15 @@ struct OverlappingModelOptions
         return *this;
     }
 
-    OverlappingModelOptions& withStride(int size)
+    OverlappingModelOptions& withStride(Size2i s)
     {
-        stride = size;
+        stride = s;
+        return *this;
+    }
+
+    OverlappingModelOptions& withEqualFrequencies(bool f)
+    {
+        equalFrequencies = f;
         return *this;
     }
 
@@ -304,7 +312,14 @@ private:
                 auto patterns = generateSymmetries(input.sub({ x, y }, patternSize, options.inputWrapping), options.symmetries);
                 for (auto&& pattern : patterns)
                 {
-                    histogram[std::move(pattern)] += 1.0f;
+                    if (options.equalFrequencies)
+                    {
+                        histogram[std::move(pattern)] = 1.0f;
+                    }
+                    else
+                    {
+                        histogram[std::move(pattern)] += 1.0f;
+                    }
                 }
             }
         }

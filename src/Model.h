@@ -41,16 +41,10 @@ struct Model
 
     [[nodiscard]] virtual std::optional<Array2<CellType>> next(WaveSeedType seed)
     {
-        Wave wave(m_compatibile, m_rng(), this->waveSize(), m_patterns, this->outputWrapping());
+        Wave wave(m_compatibile, seed, this->waveSize(), m_patterns, this->outputWrapping());
 
         std::vector<float> ps; // preallocate for observeOnce
         ps.resize(m_patterns.size());
-
-        if (!m_firstRun)
-        {
-            wave.reset();
-        }
-        m_firstRun = false;
 
         for (;;)
         {
@@ -106,8 +100,7 @@ protected:
     Model(Patterns<CellType>&& patterns, CompatibilityArrayType&& compatibility, ModelSeedType seed) :
         m_compatibile(std::move(compatibility)),
         m_patterns(std::move(patterns)),
-        m_rng(seed),
-        m_firstRun(true)
+        m_rng(seed)
     {
     }
 
@@ -125,6 +118,4 @@ private:
     Patterns<CellType> m_patterns;
 
     std::mt19937_64 m_rng;
-
-    bool m_firstRun;
 };

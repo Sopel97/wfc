@@ -69,7 +69,7 @@ static inline void saveImage(const Array2<ColorRGBi>& image, const std::string& 
     data.reserve(image.size().total() * 3);
 
     auto [width, height] = image.size();
-    
+
     for (int y = 0; y < height; ++y)
     {
         for (int x = 0; x < width; ++x)
@@ -192,8 +192,8 @@ TileSet<ColorRGBi> makeTerrainTileSet()
     };
 
     const int cliff = ts.emplace(
-        Tile<ColorRGBi>(loadImage("sample_in/tiles/terrain/cliff_0.png").square(), 
-            { ByDirection<int>::nesw(g, grgd, g, grgu), ByDirection<int>::nesw(g, grgu, g, grgd) }, 
+        Tile<ColorRGBi>(loadImage("sample_in/tiles/terrain/cliff_0.png").square(),
+            { ByDirection<int>::nesw(g, grgd, g, grgu), ByDirection<int>::nesw(g, grgu, g, grgd) },
             D4SymmetryHelper::closureFromChar('T'), 2.0f)
     );
     ts[cliff][D4Symmetry::Rotation90] = loadImage("sample_in/tiles/terrain/cliff_1.png").square();
@@ -350,8 +350,8 @@ double elapsedSeconds(std::chrono::nanoseconds ns)
 
 void testQueue()
 {
-    UpdatablePriorityQueue<int> q(16); 
-    
+    UpdatablePriorityQueue<int> q(16);
+
     auto print = [](auto& val) { std::cout << val << ' '; };
 
     q.push(7);
@@ -415,6 +415,38 @@ std::chrono::nanoseconds generateAndSave(ModelT&& model, int count, std::string 
     return duration;
 }
 
+template <typename ModelT>
+std::pair<bool, std::chrono::nanoseconds> generateAndSaveOne(ModelT&& model, std::string dir, int idx, int maxTries)
+{
+    auto duration = std::chrono::nanoseconds(0);
+
+    std::filesystem::create_directories(dir.c_str());
+    bool success = false;
+    for (int i = 0; i < maxTries; ++i)
+    {
+        auto t0 = std::chrono::high_resolution_clock::now();
+        auto v = model.next();
+        auto t1 = std::chrono::high_resolution_clock::now();
+        duration += t1 - t0;
+
+        if (v.has_value())
+        {
+            saveImage(v.value(), dir + "/" + std::to_string(idx) + ".png");
+            LOG_ERROR(g_logger, "Successful");
+            success = true;
+            break;
+        }
+        else
+        {
+            LOG_ERROR(g_logger, "Contradiction");
+        }
+    }
+
+    LOG_INFO(g_logger, "Time: ", elapsedSeconds(duration));
+
+    return { success, duration };
+}
+
 std::string toString(Size2i size)
 {
     return std::to_string(size.width) + "x" + std::to_string(size.height);
@@ -428,6 +460,176 @@ std::chrono::nanoseconds generateAndSaveExamples()
     using OverlappingOpt = typename OverlappingModel<ColorRGBi>::OptionsType;
 
     auto duration = std::chrono::nanoseconds(0);
+
+    for (const auto& size : std::vector<Size2i>{ { 8, 8 }, { 16, 16 }, { 32, 32 }, { 64, 64 }, { 128, 128 }, { 256, 256 } })
+    {
+        duration += generateAndSave(
+            Overlapping(
+                loadImage("sample_in/cave.png"),
+                OverlappingOpt()
+                    .withOutputSize(size)
+                    .withOutputWrapping(WrappingMode::None)
+                    .withInputWrapping(WrappingMode::None)
+                    .withPatternSize(3)
+                    .withSymmetries(D4Symmetries::All)
+            ),
+            32,
+            "examples_out/cave/" + toString(size)
+        );
+    }
+
+    for (const auto& size : std::vector<Size2i>{ { 8, 8 }, { 16, 16 }, { 32, 32 }, { 64, 64 }, { 128, 128 } })
+    {
+        duration += generateAndSave(
+            Overlapping(
+                loadImage("sample_in/wireworld.png"),
+                OverlappingOpt()
+                    .withOutputSize(size)
+                    .withOutputWrapping(WrappingMode::None)
+                    .withInputWrapping(WrappingMode::None)
+                    .withPatternSize(3)
+                    .withSymmetries(D4Symmetries::All)
+            ),
+            32,
+            "examples_out/wireworld/" + toString(size)
+        );
+    }
+
+    for (const auto& size : std::vector<Size2i>{ { 8, 8 }, { 16, 16 }, { 32, 32 }, { 64, 64 }, { 128, 128 }, { 256, 256 } })
+    {
+        duration += generateAndSave(
+            Overlapping(
+                loadImage("sample_in/dungeon.png"),
+                OverlappingOpt()
+                    .withOutputSize(size)
+                    .withOutputWrapping(WrappingMode::None)
+                    .withInputWrapping(WrappingMode::None)
+                    .withPatternSize(3)
+                    .withSymmetries(D4Symmetries::All)
+            ),
+            32,
+            "examples_out/dungeon/" + toString(size)
+        );
+    }
+
+    for (const auto& size : std::vector<Size2i>{ { 8, 8 }, { 16, 16 }, { 32, 32 }, { 64, 64 } })
+    {
+        duration += generateAndSave(
+            Overlapping(
+                loadImage("sample_in/penrose.png"),
+                OverlappingOpt()
+                    .withOutputSize(size)
+                    .withOutputWrapping(WrappingMode::None)
+                    .withInputWrapping(WrappingMode::None)
+                    .withPatternSize(5)
+                    .withSymmetries(D4Symmetries::None)
+                    .withStride({ 2, 2 })
+            ),
+            32,
+            "examples_out/penrose_p5s2/" + toString(size)
+        );
+    }
+
+    for (const auto& size : std::vector<Size2i>{ { 8, 8 }, { 16, 16 }, { 32, 32 }, { 64, 64 }, { 128, 128 } })
+    {
+        for (int i = 0; i < 32; ++i)
+        {
+            auto [s, d] = generateAndSaveOne(
+                Overlapping(
+                    i == 0 ? loadImage("sample_in/penrose.png") : loadImage("examples_out/penrose_rec/" + toString(size) + "/" + std::to_string(i-1) + ".png"),
+                    OverlappingOpt()
+                        .withOutputSize(size)
+                        .withOutputWrapping(WrappingMode::None)
+                        .withInputWrapping(WrappingMode::None)
+                        .withPatternSize(3)
+                        .withSymmetries(D4Symmetries::None)
+                ),
+                "examples_out/penrose_rec/" + toString(size),
+                i,
+                32
+            );
+
+            duration += d;
+            if (!s)
+            {
+                break;
+            }
+        }
+    }
+
+    for (const auto& size : std::vector<Size2i>{ { 8, 8 }, { 16, 16 }, { 32, 32 }, { 64, 64 }, { 128, 128 } })
+    {
+        duration += generateAndSave(
+            Overlapping(
+                loadImage("sample_in/penrose.png"),
+                OverlappingOpt()
+                    .withOutputSize(size)
+                    .withOutputWrapping(WrappingMode::None)
+                    .withInputWrapping(WrappingMode::None)
+                    .withPatternSize(3)
+                    .withSymmetries(D4Symmetries::None)
+            ),
+            32,
+            "examples_out/penrose/" + toString(size)
+        );
+    }
+
+    for (const auto& size : std::vector<Size2i>{ { 8, 8 }, { 16, 16 }, { 32, 32 }, { 64, 64 }, { 128, 128 }, { 256, 256 } })
+    {
+        duration += generateAndSave(
+            Overlapping(
+                loadImage("sample_in/maze.png"),
+                OverlappingOpt()
+                    .withOutputSize(size)
+                    .withOutputWrapping(WrappingMode::None)
+                    .withInputWrapping(WrappingMode::None)
+                    .withPatternSize(3)
+                    .withSymmetries(D4Symmetries::None)
+            ),
+            32,
+            "examples_out/maze/" + toString(size)
+        );
+    }
+
+    for (const std::string s : { "font_upper", "font_lower", "font_digit" })
+    {
+        for (const auto& size : std::vector<Size2i>{ { 8, 8 }, { 16, 16 }, { 32, 32 }, { 64, 64 }, { 128, 128 } })
+        {
+            duration += generateAndSave(
+                Overlapping(
+                    loadImage("sample_in/" + s + ".png"),
+                    OverlappingOpt()
+                    .withOutputSize(size)
+                    .withOutputWrapping(WrappingMode::None)
+                    .withInputWrapping(WrappingMode::None)
+                    .withPatternSize(3)
+                    .withSymmetries(D4Symmetries::None)
+                ),
+                32,
+                "examples_out/" + s + "/" + toString(size)
+            );
+        }
+    }
+
+    for (const std::string s : { "font_upper", "font_lower", "font_digit" })
+    {
+        for (const auto& size : std::vector<Size2i>{ { 8, 8 }, { 16, 16 }, { 32, 32 }, { 64, 64 }, { 128, 128 } })
+        {
+            duration += generateAndSave(
+                Overlapping(
+                    loadImage("sample_in/" + s + ".png"),
+                    OverlappingOpt()
+                    .withOutputSize(size)
+                    .withOutputWrapping(WrappingMode::None)
+                    .withInputWrapping(WrappingMode::None)
+                    .withPatternSize(3)
+                    .withSymmetries(D4Symmetries::All)
+                ),
+                32,
+                "examples_out/" + s + "_sym/" + toString(size)
+            );
+        }
+    }
 
     for (const auto& size : std::vector<Size2i>{ { 8, 8 }, { 16, 16 }, { 32, 32 }, { 64, 64 } })
     {

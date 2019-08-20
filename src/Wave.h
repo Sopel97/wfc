@@ -285,21 +285,26 @@ public:
         return 0;
     }
 
-    [[nodiscard]] Array2<int> probeAll() const
+    [[nodiscard]] Array2<int> probeSub(Coords2i start, Size2i size) const
     {
-        const Size2i waveSize = size();
+        Array2<int> ids(size);
 
-        Array2<int> ids(waveSize);
+        const Coords2i end = start + Coords2i{ size.width, size.height }; 
 
-        for (int x = 0; x < waveSize.width; ++x)
+        for (int x = start.x; x < end.x; ++x)
         {
-            for (int y = 0; y < waveSize.height; ++y)
+            for (int y = start.y; y < end.y; ++y)
             {
-                ids[x][y] = probe({ x, y });
+                ids[x - start.x][y - start.y] = probe({ x, y });
             }
         }
 
         return ids;
+    }
+
+    [[nodiscard]] Array2<int> probeAll() const
+    {
+        return probeSub({ 0, 0 }, size());
     }
 
     [[nodiscard]] ObservationResult observeOnce(std::vector<float>& ps) noexcept
